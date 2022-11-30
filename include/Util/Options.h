@@ -120,7 +120,8 @@ public:
 
     // Sparse value-flow graph (VFG.cpp)
     static const llvm::cl::opt<bool> DumpVFG;
-
+    //XXX(shuibing)::add vfg dump path and name
+    static const llvm::cl::opt<std::string> DumpVFGFile;
     // Location set for modeling abstract memory object (LocationSet.cpp)
     static const llvm::cl::opt<bool> SingleStride;
 

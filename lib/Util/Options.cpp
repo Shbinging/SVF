@@ -243,7 +243,11 @@ const llvm::cl::opt<bool> Options::DumpVFG(
     llvm::cl::init(false),
     llvm::cl::desc("Dump dot graph of VFG")
 );
-
+const llvm::cl::opt<std::string> Options::DumpVFGFile(
+    "dump-vfgfile",
+    llvm::cl::init("svfg_final.dot"),
+    llvm::cl::desc("File name and path of graph of VFG")
+);
 
 // Location set for modeling abstract memory object (LocationSet.cpp)
 const llvm::cl::opt<bool> Options::SingleStride(
