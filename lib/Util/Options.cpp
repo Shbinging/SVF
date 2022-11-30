@@ -245,7 +245,7 @@ const llvm::cl::opt<bool> Options::DumpVFG(
 );
 const llvm::cl::opt<std::string> Options::DumpVFGFile(
     "dump-vfgfile",
-    llvm::cl::init("svfg_final.dot"),
+    llvm::cl::init("svfg_final"),
     llvm::cl::desc("File name and path of graph of VFG")
 );
 
