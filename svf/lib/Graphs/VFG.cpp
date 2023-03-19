@@ -147,7 +147,9 @@ const std::string BinaryOPVFGNode::toString() const
     rawstr << "PAGEdge: [" << res->getId() << " = Binary(";
     for(BinaryOPVFGNode::OPVers::const_iterator it = opVerBegin(), eit = opVerEnd();
             it != eit; it++)
+    {
         rawstr << it->second->getId() << ", ";
+    }
     rawstr << ")]\t";
     if(res->hasValue())
     {

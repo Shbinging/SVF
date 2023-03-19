@@ -4,7 +4,7 @@ else()
   add_executable(svf-ex svf-ex.cpp)
 
   target_link_libraries(svf-ex SvfLLVM ${llvm_libs})
-
+  target_link_libraries(svf-ex rustc_demangle)
   set_target_properties(svf-ex PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                           ${CMAKE_BINARY_DIR}/bin)
 endif()

@@ -138,10 +138,13 @@ void traverseOnVFG(const SVFG* vfg, SVFValue* val)
         /// SVFValue* val = pNode->getValue();
     }
 }
-
+#include<rustc_demangle.h>
 int main(int argc, char ** argv)
 {
-
+//    char st[100];
+//    rustc_demangle("_ZN3std3sys4unix7process14process_common8ExitCode6as_i3217h7436257d4c58ac12E", st, 100);
+//    printf("%s\n", st);
+//    return 0;
     char **arg_value = new char*[argc];
     std::vector<std::string> moduleNameVec;
     moduleNameVec = OptionBase::parseOptions(

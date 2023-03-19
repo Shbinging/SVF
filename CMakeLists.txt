@@ -63,7 +63,8 @@ message(STATUS "Found Z3: ${Z3_LIBRARIES}")
 message(STATUS "Z3 include dir: ${Z3_INCLUDES}")
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/svf/include
-                    ${CMAKE_BINARY_DIR}/include ${Z3_INCLUDES})
+                    ${CMAKE_BINARY_DIR}/include ${Z3_INCLUDES} "/home/shuibing/ptCode2vec/dataset/rustc-demangle/crates/capi/include/")
+link_directories("/home/shuibing/ptCode2vec/dataset/rustc-demangle/target/release/")
 
 # checks if the test-suite is present, if it is then build bc files and add
 # testing to cmake build

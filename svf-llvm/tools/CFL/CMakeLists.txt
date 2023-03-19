@@ -1,7 +1,7 @@
 if(DEFINED IN_SOURCE_BUILD)
   add_llvm_tool(cfl cfl.cpp)
 else()
-  add_executable(cfl cfl.cpp)
+  add_executable(cfl cfl.cpp ../mangleName/mangle.cpp)
 
   target_link_libraries(cfl SvfLLVM ${llvm_libs})
 
