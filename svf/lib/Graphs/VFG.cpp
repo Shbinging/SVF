@@ -37,6 +37,17 @@
 using namespace SVF;
 using namespace SVFUtil;
 
+static std::string dumpDict(std::map<std::string, std::string> dict){
+    std::string str;
+    std::stringstream  rawstr(str);
+    rawstr << "{";
+    for(auto& item: dict){
+        rawstr << "\"" << item.first << "\"" << " : " << "\"" << item.second << "\",";
+    }
+    rawstr << "}";
+    return rawstr.str();
+}
+
 const std::string VFGNode::toString() const
 {
     std::string str;
@@ -51,6 +62,8 @@ const std::string StmtVFGNode::toString() const
     std::stringstream  rawstr(str);
     rawstr << "StmtVFGNode ID: " << getId() << " ";
     rawstr << getPAGEdge()->toString();
+
+    assert(0 && "TODO:: we don't modify stmtVFGNode!");
     return rawstr.str();
 }
 
@@ -60,13 +73,19 @@ const NodeBS LoadVFGNode::getDefSVFVars() const
     nb.set(getPAGDstNodeID());
     return nb;
 }
-
 const std::string LoadVFGNode::toString() const
 {
     std::string str;
     std::stringstream rawstr(str);
     rawstr << "LoadVFGNode ID: " << getId() << " ";
     rawstr << getPAGEdge()->toString();
+    //assert(0 && "TODO:: we don't modify stmtVFGNode!");
+
+    //getPAGEdge()->getValue()->
+    outs() << getInst()->getFunction()->toString() << "\n";
+    std::map<std::string, std::string> dict = getValue()->getLLVMOperands();
+    outs() << dumpDict(dict) << "\n";
+    //outs() << rawstr.str() << "\n";
     return rawstr.str();
 }
 

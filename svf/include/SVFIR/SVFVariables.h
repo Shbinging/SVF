@@ -293,7 +293,6 @@ public:
             return value->getName();
         return "";
     }
-
     virtual const std::string toString() const;
 };
 

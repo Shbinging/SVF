@@ -938,7 +938,7 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
         }
         else
             assert(false && "what else kinds of nodes do we have??");
-
+        //outs() << "-------\n" << rawstr.str() << "\n";
         return rawstr.str();
     }
 

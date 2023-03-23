@@ -24,4 +24,5 @@ file(
 add_library(SvfCoreObj OBJECT ${SVF_CORE_SOURCES})
 add_library(SvfCore STATIC)
 target_link_libraries(SvfCore PUBLIC ${Z3_LIBRARIES} SvfCoreObj)
-
+target_include_directories(SvfCore SYSTEM PUBLIC ${LLVM_INCLUDE_DIRS})
+target_include_directories(SvfCoreObj SYSTEM PUBLIC ${LLVM_INCLUDE_DIRS})

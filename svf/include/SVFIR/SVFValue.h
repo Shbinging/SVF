@@ -144,10 +144,10 @@ public:
     bool postDominate(const SVFBasicBlock* bbKey, const SVFBasicBlock* bbValue) const;
 };
 
+
 class SVFValue
 {
     friend class LLVMModuleSet;
-
 public:
     typedef s64_t GNodeK;
 
@@ -244,6 +244,7 @@ public:
     /// Needs to be implemented by a specific SVF front end (e.g., the implementation in LLVMUtil)
     virtual const std::string toString() const;
 
+    virtual const std::map<std::string, std::string> getLLVMOperands() const;
     /// Overloading operator << for dumping ICFG node ID
     //@{
     friend OutStream& operator<< (OutStream &o, const SVFValue &node)

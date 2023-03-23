@@ -161,7 +161,7 @@ int main(int argc, char ** argv)
     /// Build Program Assignment Graph (SVFIR)
     SVFIRBuilder builder(svfModule);
     SVFIR* pag = builder.build();
-
+    pag->dump("/home/shuibing/ptCode2vec/dataset/rust-gen-ir/pag");
     /// Create Andersen's pointer analysis
     Andersen* ander = AndersenWaveDiff::createAndersenWaveDiff(pag);
 
@@ -176,16 +176,15 @@ int main(int argc, char ** argv)
 
     /// ICFG
     ICFG* icfg = pag->getICFG();
-    icfg->dump("icfg");
+    icfg->dump("/home/shuibing/ptCode2vec/dataset/rust-gen-ir/icfg");
 
     /// Value-Flow Graph (VFG)
     VFG* vfg = new VFG(callgraph);
 
     /// Sparse value-flow graph (SVFG)
     SVFGBuilder svfBuilder(true);
-    //SVFG* svfg =
-    svfBuilder.buildFullSVFG(ander);
-
+    SVFG* svfg = svfBuilder.buildFullSVFG(ander);
+    svfg->dump("/home/shuibing/ptCode2vec/dataset/rust-gen-ir/svfg");
     /// Collect uses of an LLVM Value
     /// traverseOnVFG(svfg, value);
 

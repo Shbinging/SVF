@@ -1048,6 +1048,20 @@ const std::string SVFValue::toString() const
     return rawstr.str();
 }
 
+const std::map<std::string, std::string> SVFValue::getLLVMOperands() const{
+    const Value* val =
+        LLVMModuleSet::getLLVMModuleSet()->getLLVMValue(this);
+    std::map<std::string, std::string> dict;
+    std::string str;
+    llvm::raw_string_ostream output(str);
+    val->printAsOperand(output);
+    dict["varname"] = output.str();
+    std::string str1;
+    llvm::raw_string_ostream output1(str1);
+    val->getType()->print(output1);
+    dict["vartype"] = output1.str();
+    return dict;
+}
 const std::string SVFType::toString() const
 {
     std::string str;
