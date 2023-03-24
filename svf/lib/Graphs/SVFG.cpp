@@ -875,6 +875,10 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
         if(StmtSVFGNode* stmtNode = SVFUtil::dyn_cast<StmtSVFGNode>(node))
         {
             rawstr << stmtNode->toString();
+            //if (isa<LoadVFGNode>(node))
+            //{
+                outs() << stmtNode->getAttrString() << "\n";
+            //}
         }
         else if(BinaryOPVFGNode* bop = SVFUtil::dyn_cast<BinaryOPVFGNode>(node))
         {

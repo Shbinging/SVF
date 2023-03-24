@@ -243,7 +243,6 @@ public:
 
     /// Needs to be implemented by a specific SVF front end (e.g., the implementation in LLVMUtil)
     virtual const std::string toString() const;
-
     /// Overloading operator << for dumping ICFG node ID
     //@{
     friend OutStream& operator<< (OutStream &o, const SVFValue &node)
@@ -252,6 +251,7 @@ public:
         return o;
     }
     //@}
+    const std::map<std::string, std::string> callLLVMFunction(int mod) const;
 };
 
 class SVFFunction : public SVFValue

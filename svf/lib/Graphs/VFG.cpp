@@ -61,6 +61,13 @@ const NodeBS LoadVFGNode::getDefSVFVars() const
     return nb;
 }
 
+const std::string LoadVFGNode::getAttrString() const {
+    auto stmt = cast<AssignStmt>(getPAGEdge());
+    auto attri = stmt->dumpAttri();
+    attri["node_type"] = "load";
+    return VFGNode::dict2str(attri);
+}
+
 const std::string LoadVFGNode::toString() const
 {
     std::string str;
@@ -69,6 +76,7 @@ const std::string LoadVFGNode::toString() const
     rawstr << getPAGEdge()->toString();
     return rawstr.str();
 }
+
 
 const NodeBS StoreVFGNode::getDefSVFVars() const
 {
@@ -81,6 +89,14 @@ const NodeBS StoreVFGNode::getDefSVFVars() const
         }
     }
     return nb;
+}
+
+
+const std::string StoreVFGNode::getAttrString() const {
+    auto stmt = cast<AssignStmt>(getPAGEdge());
+    auto attri = stmt->dumpAttri();
+    attri["node_type"] = "store";
+    return VFGNode::dict2str(attri);
 }
 
 const std::string StoreVFGNode::toString() const
@@ -97,6 +113,13 @@ const NodeBS CopyVFGNode::getDefSVFVars() const
     NodeBS nb;
     nb.set(getPAGDstNodeID());
     return nb;
+}
+
+const std::string CopyVFGNode::getAttrString() const {
+    auto stmt = cast<AssignStmt>(getPAGEdge());
+    auto attri = stmt->dumpAttri();
+    attri["node_type"] = "copy";
+    return VFGNode::dict2str(attri);
 }
 
 const std::string CopyVFGNode::toString() const
@@ -201,6 +224,13 @@ const NodeBS GepVFGNode::getDefSVFVars() const
     return nb;
 }
 
+const std::string GepVFGNode::getAttrString() const {
+    auto stmt = cast<AssignStmt>(getPAGEdge());
+    auto attri = stmt->dumpAttri();
+    attri["node_type"] = "gep";
+    return VFGNode::dict2str(attri);
+}
+
 const std::string GepVFGNode::toString() const
 {
     std::string str;
@@ -257,6 +287,13 @@ const NodeBS AddrVFGNode::getDefSVFVars() const
     NodeBS nb;
     nb.set(getPAGDstNodeID());
     return nb;
+}
+
+const std::string AddrVFGNode::getAttrString() const {
+    auto stmt = cast<AssignStmt>(getPAGEdge());
+    auto attri = stmt->dumpAttri();
+    attri["node_type"] = "addr";
+    return VFGNode::dict2str(attri);
 }
 
 const std::string AddrVFGNode::toString() const

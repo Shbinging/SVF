@@ -1048,6 +1048,35 @@ const std::string SVFValue::toString() const
     return rawstr.str();
 }
 
+const std::map<std::string, std::string> SVFValue::callLLVMFunction(int mod) const{
+    std::map<std::string, std::string> dict;
+    /*
+     * 0 is getLLVMInstruction operand_name, otherwise return ""
+     *
+     */
+    switch(mod){
+        case 0: {
+        dict["operand_name"] = "";
+        const Value* val =
+            LLVMModuleSet::getLLVMModuleSet()->getLLVMValue(this);
+        if (val == nullptr)
+            return dict;
+        if (!llvm::isa<llvm::Instruction>(val))
+        {
+            return dict;
+        }
+        auto inst = llvm::cast<llvm::Instruction>(val);
+        dict["operand_name"] = std::string(inst->getOpcodeName());
+        return dict;
+        break;
+    }
+        default: {
+        assert(0 && "bad mod");
+    }
+    }
+    return dict;
+}
+
 const std::string SVFType::toString() const
 {
     std::string str;

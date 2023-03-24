@@ -109,7 +109,7 @@ public:
     static std::string dict2str(std::map<std::string, std::string> dict){
         std::string str;
         std::stringstream  rawstr(str);
-        rawstr << "{";
+        rawstr << "svfattr:{";
         for(auto& item: dict){
             rawstr << "\"" << item.first << "\"" << " : " << "\"" << item.second << "\",";
         }
@@ -247,6 +247,8 @@ public:
     const NodeBS getDefSVFVars() const override;
 
     const std::string toString() const override;
+
+    const std::string getAttrString() const override;
 };
 
 /*!
@@ -288,6 +290,8 @@ public:
     const NodeBS getDefSVFVars() const override;
 
     const std::string toString() const override;
+
+    const std::string getAttrString() const override;
 };
 
 /*!
@@ -329,6 +333,8 @@ public:
     const NodeBS getDefSVFVars() const override;
 
     const std::string toString() const override;
+
+    const std::string getAttrString() const override;
 };
 
 
@@ -642,6 +648,8 @@ public:
     const NodeBS getDefSVFVars() const override;
 
     const std::string toString() const override;
+
+    const std::string getAttrString() const override;
 };
 
 /*
@@ -808,6 +816,8 @@ public:
     const NodeBS getDefSVFVars() const override;
 
     const std::string toString() const override;
+
+    const std::string getAttrString() const override;
 };
 
 

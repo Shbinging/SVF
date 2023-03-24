@@ -77,7 +77,9 @@ std::map<std::string, std::string> AssignStmt::dumpAttri() const
     dict["dest_name"] = getLHSVar()->getValueName();
     dict["dest_type"] = getLHSVar()->getType()->toString();
     dict["inst_full"] = getInst()->toString();
-    dict["inst_name"] = getInst()->getName();
+    //FIXME::inst_name is not right
+    auto res = getValue()->callLLVMFunction(0);
+    dict["inst_name"] = res["operand_name"];
     dict["func_name"] = getInst()->getFunction()->getName();
     dict["block_name"] = getInst()->getParent()->getName();
     return dict;
