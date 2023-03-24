@@ -106,6 +106,21 @@ public:
 
     virtual const std::string toString() const;
 
+    static std::string dict2str(std::map<std::string, std::string> dict){
+        std::string str;
+        std::stringstream  rawstr(str);
+        rawstr << "{";
+        for(auto& item: dict){
+            rawstr << "\"" << item.first << "\"" << " : " << "\"" << item.second << "\",";
+        }
+        rawstr << "}";
+        return rawstr.str();
+    }
+
+    virtual const std::string getAttrString() const{
+        assert(0 && "VFGNode base getAttrString should never be used");
+    }
+
 protected:
     const ICFGNode* icfgNode;
 };
