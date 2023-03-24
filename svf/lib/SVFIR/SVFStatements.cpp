@@ -71,6 +71,10 @@ const std::string SVFStmt::toString() const
     return rawstr.str();
 }
 
+const std::map<std::string, std::string> AddrStmt::dumpAttri() const {
+
+}
+
 const std::string AddrStmt::toString() const
 {
     std::string str;
