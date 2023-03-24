@@ -1052,15 +1052,74 @@ const std::map<std::string, std::string> SVFValue::getLLVMOperands() const{
     const Value* val =
         LLVMModuleSet::getLLVMModuleSet()->getLLVMValue(this);
     std::map<std::string, std::string> dict;
-    std::string str;
-    llvm::raw_string_ostream output(str);
-    val->printAsOperand(output);
-    dict["varname"] = output.str();
-    std::string str1;
-    llvm::raw_string_ostream output1(str1);
-    val->getType()->print(output1);
-    dict["vartype"] = output1.str();
+    //val->print(llvm::outs());
+    //llvm::outs() << llvm::isa<llvm::Constant>(val);
+    dict["value_type"] = std::string();
+    llvm::raw_string_ostream o_value_type(dict["value_type"]);
+    if (llvm::isa<llvm::Instruction>(val)){
+        dict["dest_name"] = std::string();
+        dict["dest_type"] = std::string();
+        dict["inst_name"] = std::string();
+        dict["inst_full"] = std::string();
+        dict["func_name"] = std::string();
+        dict["block_name"] = std::string();
+        llvm::raw_string_ostream o_var_name(dict["dest_name"]);
+        llvm::raw_string_ostream o_var_type(dict["dest_type"]);
+        llvm::raw_string_ostream o_inst_name(dict["inst_name"]);
+        llvm::raw_string_ostream o_inst_full(dict["inst_full"]);
+        llvm::raw_string_ostream o_func_name(dict["func_name"]);
+        llvm::raw_string_ostream o_block_name(dict["block_name"]);
+        o_value_type << "inst";
+
+        auto inst = llvm::cast<llvm::Instruction>(val);
+        inst->printAsOperand(o_var_name);
+        inst->getType()->print(o_var_type);
+        o_inst_name << inst->getOpcodeName();
+        inst->print(o_inst_full);
+        o_func_name << inst->getFunction()->getName().str();
+        o_block_name << inst->getParent()->getName().str();
+    }
+    else if (llvm::isa<llvm::Constant>(val)){
+            o_value_type << "constant";
+            auto cons = llvm::cast<llvm::Constant>(val);
+            dict["const_name"] = std::string();
+            dict["const_type"] = std::string();
+            dict["const_full"] = std::string();
+            llvm::raw_string_ostream o_const_name(dict["const_name"]);
+            llvm::raw_string_ostream o_const_type(dict["const_type"]);
+            llvm::raw_string_ostream o_const_full(dict["const_full"]);
+            cons->printAsOperand(o_const_name);
+            cons->getType()->print(o_const_type);
+            cons->print(o_const_full);
+            //assert(0 && "TODO constant");
+    }
+    else if (llvm::isa<llvm::Function>(val)){
+            o_value_type << "function";
+            assert(0 && "TODO function");
+    }
+    else if (llvm::isa<llvm::Argument>(val)){
+            o_value_type << "argument";
+            assert(0 && "TODO argument");
+    }else{
+            assert(0 && "getLLVMOperand bad val type");
+    }
+
+
+    //llvm::outs() << "ok " << dict["var_name"] << "\n";
+    //printf("%s\n", inst->getOpcodeName());
     return dict;
+//    std::string str;
+//    llvm::raw_string_ostream output(str);
+//    val->printAsOperand(output);
+//    dict["varname"] = output.str();
+//    std::string str1;
+//    llvm::raw_string_ostream output1(str1);
+//    val->getType()->print(output1);
+//    dict["vartype"] = output1.str();
+//    auto insto = llvm::dyn_cast<llvm::Instruction>(val);
+//    insto->getFunction()->print
+//    dict["funcname"] =
+//    return dict;
 }
 const std::string SVFType::toString() const
 {

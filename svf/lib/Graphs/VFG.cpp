@@ -42,9 +42,10 @@ static std::string dumpDict(std::map<std::string, std::string> dict){
     std::stringstream  rawstr(str);
     rawstr << "{";
     for(auto& item: dict){
-        rawstr << "\"" << item.first << "\"" << " : " << "\"" << item.second << "\",";
+        rawstr << "\"" << item.first << "\"" << ":" << "\"" << item.second << "\",  ";
     }
     rawstr << "}";
+    outs() << rawstr.str() << std::endl;
     return rawstr.str();
 }
 
@@ -78,13 +79,15 @@ const std::string LoadVFGNode::toString() const
     std::string str;
     std::stringstream rawstr(str);
     rawstr << "LoadVFGNode ID: " << getId() << " ";
-    rawstr << getPAGEdge()->toString();
+    //rawstr << getPAGEdge()->toString();
     //assert(0 && "TODO:: we don't modify stmtVFGNode!");
 
     //getPAGEdge()->getValue()->
-    outs() << getInst()->getFunction()->toString() << "\n";
+    //outs() << getInst()->getFunction()->toString() << "\n";
     std::map<std::string, std::string> dict = getValue()->getLLVMOperands();
-    outs() << dumpDict(dict) << "\n";
+    dict["inst_type"] = "load";
+    rawstr << dumpDict(dict);
+    //outs() << dumpDict(dict) << "\n";
     //outs() << rawstr.str() << "\n";
     return rawstr.str();
 }
@@ -107,7 +110,10 @@ const std::string StoreVFGNode::toString() const
     std::string str;
     std::stringstream rawstr(str);
     rawstr << "StoreVFGNode ID: " << getId() << " ";
-    rawstr << getPAGEdge()->toString();
+    //rawstr << getPAGEdge()->toString();
+    std::map<std::string, std::string> dict = getValue()->getLLVMOperands();
+    dict["inst_type"] = "store";
+    rawstr << dumpDict(dict);
     return rawstr.str();
 }
 
@@ -124,6 +130,10 @@ const std::string CopyVFGNode::toString() const
     std::stringstream rawstr(str);
     rawstr << "CopyVFGNode ID: " << getId() << " ";
     rawstr << getPAGEdge()->toString();
+    std::map<std::string, std::string> dict = getValue()->getLLVMOperands();
+    dict["inst_type"] = "copy";
+    rawstr << dumpDict(dict);
+    outs() << rawstr.str() << "\n";
     return rawstr.str();
 }
 
@@ -139,15 +149,19 @@ const std::string CmpVFGNode::toString() const
     std::string str;
     std::stringstream rawstr(str);
     rawstr << "CmpVFGNode ID: " << getId() << " ";
-    rawstr << "PAGEdge: [" << res->getId() << " = cmp(";
-    for(CmpVFGNode::OPVers::const_iterator it = opVerBegin(), eit = opVerEnd();
-            it != eit; it++)
-        rawstr << it->second->getId() << ", ";
-    rawstr << ")]\n";
-    if(res->hasValue())
-    {
-        rawstr << " " << res->getValue()->toString();
-    }
+//    rawstr << "PAGEdge: [" << res->getId() << " = cmp(";
+//    for(CmpVFGNode::OPVers::const_iterator it = opVerBegin(), eit = opVerEnd();
+//            it != eit; it++)
+//        rawstr << it->second->getId() << ", ";
+//    rawstr << ")]\n";
+//    if(res->hasValue())
+//    {
+//        rawstr << " " << res->getValue()->toString();
+//    }
+
+    std::map<std::string, std::string> dict = getValue()->getLLVMOperands();
+    dict["inst_type"] = "cmp";
+    rawstr << dumpDict(dict);
     return rawstr.str();
 }
 
@@ -163,17 +177,21 @@ const std::string BinaryOPVFGNode::toString() const
     std::string str;
     std::stringstream rawstr(str);
     rawstr << "BinaryOPVFGNode ID: " << getId() << " ";
-    rawstr << "PAGEdge: [" << res->getId() << " = Binary(";
-    for(BinaryOPVFGNode::OPVers::const_iterator it = opVerBegin(), eit = opVerEnd();
-            it != eit; it++)
-    {
-        rawstr << it->second->getId() << ", ";
-    }
-    rawstr << ")]\t";
-    if(res->hasValue())
-    {
-        rawstr << " " << res->getValue()->toString();
-    }
+//    rawstr << "PAGEdge: [" << res->getId() << " = Binary(";
+//    for(BinaryOPVFGNode::OPVers::const_iterator it = opVerBegin(), eit = opVerEnd();
+//            it != eit; it++)
+//    {
+//        rawstr << it->second->getId() << ", ";
+//    }
+//    rawstr << ")]\t";
+//    if(res->hasValue())
+//    {
+//        rawstr << " " << res->getValue()->toString();
+//    }
+    std::map<std::string, std::string> dict = getValue()->getLLVMOperands();
+    dict["inst_type"] = "binary";
+    rawstr << dumpDict(dict);
+    outs() << rawstr.str() << "\n";
     return rawstr.str();
 }
 
@@ -198,6 +216,7 @@ const std::string UnaryOPVFGNode::toString() const
     {
         rawstr << " " << res->getValue()->toString();
     }
+    assert(0 && "TODO:: we don't modify UnaryVFGNode!");
     return rawstr.str();
 }
 
@@ -212,6 +231,7 @@ const std::string BranchVFGNode::toString() const
     std::stringstream rawstr(str);
     rawstr << "BranchVFGNode ID: " << getId() << " ";
     rawstr << "PAGEdge: [" << brstmt->toString() << "\t";
+    assert(0 && "TODO:: we don't modify branchVFGNode!");
     return rawstr.str();
 }
 
@@ -227,7 +247,10 @@ const std::string GepVFGNode::toString() const
     std::string str;
     std::stringstream rawstr(str);
     rawstr << "GepVFGNode ID: " << getId() << " ";
-    rawstr << getPAGEdge()->toString();
+    //rawstr << getPAGEdge()->toString();
+    std::map<std::string, std::string> dict = getValue()->getLLVMOperands();
+    dict["inst_type"] = "gep";
+    rawstr << dumpDict(dict);
     return rawstr.str();
 }
 
@@ -252,6 +275,7 @@ const std::string PHIVFGNode::toString() const
     {
         rawstr << " " << res->getValue()->toString();
     }
+    assert(0 && "TODO:: we don't modify PHIVFGNode!");
     return rawstr.str();
 }
 
@@ -270,6 +294,7 @@ const std::string IntraPHIVFGNode::toString() const
     {
         rawstr << " " << res->getValue()->toString();
     }
+    assert(0 && "TODO:: we don't modify IntraPHIVFGNode!");
     return rawstr.str();
 }
 
@@ -285,7 +310,12 @@ const std::string AddrVFGNode::toString() const
     std::string str;
     std::stringstream rawstr(str);
     rawstr << "AddrVFGNode ID: " << getId() << " ";
-    rawstr << getPAGEdge()->toString();
+    //rawstr << getPAGEdge()->toString();
+    //outs() << getPAGEdge()->toString() << "\n";
+    std::map<std::string, std::string> dict = getValue()->getLLVMOperands();
+    dict["inst_type"] = "addr";
+    rawstr << dumpDict(dict);
+    //outs() << rawstr.str() << "\n";
     return rawstr.str();
 }
 
