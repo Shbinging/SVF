@@ -60,6 +60,7 @@ public:
     typedef VFGEdge::VFGEdgeSetTy::const_iterator const_iterator;
     typedef Set<const CallPE*> CallPESet;
     typedef Set<const RetPE*> RetPESet;
+    typedef std::map<std::string, std::string> dictTy;
 
 public:
     /// Constructor
@@ -120,6 +121,23 @@ public:
     virtual const std::string getAttrString() const{
         assert(0 && "VFGNode base getAttrString should never be used");
     }
+
+    std::map<std::string, std::string> get_loc_dict() const{
+        std::map<std::string, std::string> dict;
+        if (getICFGNode()->getFun() == nullptr){
+            dict["func_name"] = "GLOBAL";
+        }else{
+            dict["func_name"] = getICFGNode()->getFun()->getName();
+        }
+        if (getICFGNode()->getBB() == nullptr){
+            dict["block_name"] = "GLOBAL";
+        }else
+        {
+            dict["block_name"] = getICFGNode()->getBB()->getName();
+        }
+        return dict;
+    }
+
 
 protected:
     const ICFGNode* icfgNode;

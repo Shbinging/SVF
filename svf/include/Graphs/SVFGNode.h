@@ -129,6 +129,7 @@ public:
     //@}
 
     virtual const std::string toString() const;
+    const std::string getAttrString() const;
 };
 
 
@@ -171,6 +172,7 @@ public:
     //@}
 
     virtual const std::string toString() const;
+    const std::string getAttrString() const;
 };
 
 
@@ -220,6 +222,8 @@ public:
     //@}
 
     virtual const std::string toString() const;
+
+    const std::string getAttrString() const;
 };
 
 
@@ -267,6 +271,7 @@ public:
     //@}
 
     virtual const std::string toString() const;
+    const std::string getAttrString() const;
 };
 
 
@@ -341,6 +346,7 @@ public:
     //@}
 
     virtual const std::string toString() const;
+    const std::string getAttrString() const;
 };
 
 /*
