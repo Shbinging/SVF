@@ -877,12 +877,13 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
             rawstr << stmtNode->toString();
             //if (isa<LoadVFGNode>(node))
             //{
-                outs() << stmtNode->getAttrString() << "\n";
+            outs() << stmtNode->getAttrString() << "\n";
             //}
         }
         else if(BinaryOPVFGNode* bop = SVFUtil::dyn_cast<BinaryOPVFGNode>(node))
         {
             rawstr << bop->toString();
+            outs() << bop->getAttrString() << "\n";
         }
         else if(UnaryOPVFGNode* uop = SVFUtil::dyn_cast<UnaryOPVFGNode>(node))
         {

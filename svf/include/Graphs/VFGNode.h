@@ -478,6 +478,8 @@ public:
 
     const SVFValue* getValue() const override;
     const std::string toString() const override;
+
+    const std::string getAttrString() const override;
 };
 
 /*!

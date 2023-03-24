@@ -75,13 +75,26 @@ std::map<std::string, std::string> AssignStmt::dumpAttri() const
 {
     std::map<std::string, std::string> dict;
     dict["dest_name"] = getLHSVar()->getValueName();
-    dict["dest_type"] = getLHSVar()->getType()->toString();
-    dict["inst_full"] = getInst()->toString();
+    if (getLHSVar()->getType() == nullptr){
+        dict["dest_type"] = "";
+    }else{
+        dict["dest_type"] = getLHSVar()->getType()->toString();
+    }
+    dict["inst_full"] = getValue()->toString();
     //FIXME::inst_name is not right
     auto res = getValue()->callLLVMFunction(0);
     dict["inst_name"] = res["operand_name"];
-    dict["func_name"] = getInst()->getFunction()->getName();
-    dict["block_name"] = getInst()->getParent()->getName();
+    if (getICFGNode()->getFun() == nullptr){
+        dict["func_name"] = "GLOBAL";
+    }else{
+        dict["func_name"] = getICFGNode()->getFun()->getName();
+    }
+    if (getICFGNode()->getBB() == nullptr){
+        dict["block_name"] = "GLOBAL";
+    }else
+    {
+        dict["block_name"] = getICFGNode()->getBB()->getName();
+    }
     return dict;
 }
 

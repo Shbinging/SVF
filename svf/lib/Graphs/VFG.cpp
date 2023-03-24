@@ -162,6 +162,28 @@ const NodeBS BinaryOPVFGNode::getDefSVFVars() const
     return nb;
 }
 
+const std::string BinaryOPVFGNode::getAttrString() const {
+    std::map<std::string, std::string> dict;
+    dict["node_type"] = "binary";
+    dict["dest_name"] = getRes()->getValueName();
+    dict["dest_type"] = getRes()->getType()->toString();
+    dict["inst_full"] = getRes()->getValue()->toString();
+    auto r = getRes()->getValue()->callLLVMFunction(0);
+    dict["inst_name"] = r["operand_name"];
+    if (getICFGNode()->getFun() == nullptr){
+        dict["func_name"] = "GLOBAL";
+    }else{
+        dict["func_name"] = getICFGNode()->getFun()->getName();
+    }
+    if (getICFGNode()->getBB() == nullptr){
+        dict["block_name"] = "GLOBAL";
+    }else
+    {
+        dict["block_name"] = getICFGNode()->getBB()->getName();
+    }
+    return VFGNode::dict2str(dict);
+}
+
 const std::string BinaryOPVFGNode::toString() const
 {
     std::string str;
