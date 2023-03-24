@@ -79,7 +79,7 @@ const std::string LoadVFGNode::toString() const
     std::string str;
     std::stringstream rawstr(str);
     rawstr << "LoadVFGNode ID: " << getId() << " ";
-    //rawstr << getPAGEdge()->toString();
+    rawstr << getPAGEdge()->toString();
     //assert(0 && "TODO:: we don't modify stmtVFGNode!");
 
     //getPAGEdge()->getValue()->
@@ -294,7 +294,7 @@ const std::string IntraPHIVFGNode::toString() const
     {
         rawstr << " " << res->getValue()->toString();
     }
-    assert(0 && "TODO:: we don't modify IntraPHIVFGNode!");
+    //assert(0 && "TODO:: we don't modify IntraPHIVFGNode!");
     return rawstr.str();
 }
 

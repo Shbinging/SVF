@@ -199,6 +199,9 @@ const std::string LoadStmt::toString() const
         rawstr << "\n";
         rawstr << getValue()->toString();
     }
+    std::string str1;
+    std::stringstream  rawstr1(str1);
+    //rawstr1 << getInst()->toString();
     return rawstr.str();
 }
 
@@ -207,6 +210,9 @@ const std::string StoreStmt::toString() const
     std::string str;
     std::stringstream rawstr(str);
     rawstr << "StoreStmt: [Var" << getLHSVarID() << " <-- Var" << getRHSVarID() << "]\t";
+    if (getLHSVar()->getValueName() != ""){
+        std::cout << "store val:" << getLHSVar()->getValueName() << "\n";
+    }
     if (Options::ShowSVFIRValue())
     {
         rawstr << "\n";
