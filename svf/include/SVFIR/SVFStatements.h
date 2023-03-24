@@ -170,19 +170,9 @@ public:
 
     virtual const std::string toString() const;
 
-    const std::string dict2str(std::map<std::string, std::string> dict){
-        std::string str;
-        std::stringstream  rawstr(str);
-        rawstr << "{";
-        for(auto& item: dict){
-            rawstr << "\"" << item.first << "\"" << " : " << "\"" << item.second << "\",";
-        }
-        rawstr << "}";
-        return rawstr.str();
-    }
-    virtual const std::map<std::string, std::string> dumpAttri() const{
-        assert(0 && "can't use base dumpAttri");
-    }
+//    virtual const std::map<std::string, std::string> dumpAttri() const{
+//        assert(0 && "can't use base dumpAttri");
+//    }
     //@}
     /// Overloading operator << for dumping SVFVar value
     //@{
@@ -280,9 +270,8 @@ public:
     {
         return SVFStmt::getDstID();
     }
-    virtual const std::map<std::string, std::string> dumpAttri() const {
-        assert(0 && "can't use base dumpAttri");
-    }
+    std::map<std::string, std::string> dumpAttri() const;
+
     virtual const std::string toString() const = 0;
 };
 
@@ -317,9 +306,7 @@ public:
     AddrStmt(SVFVar* s, SVFVar* d) : AssignStmt(s,d,SVFStmt::Addr)
     {
     }
-
     virtual const std::string toString() const override;
-    const std::map<std::string, std::string> dumpAttri() const override;
 };
 
 

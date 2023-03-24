@@ -71,9 +71,18 @@ const std::string SVFStmt::toString() const
     return rawstr.str();
 }
 
-const std::map<std::string, std::string> AddrStmt::dumpAttri() const {
-
+std::map<std::string, std::string> AssignStmt::dumpAttri() const
+{
+    std::map<std::string, std::string> dict;
+    dict["dest_name"] = getLHSVar()->getValueName();
+    dict["dest_type"] = getLHSVar()->getType()->toString();
+    dict["inst_full"] = getInst()->toString();
+    dict["inst_name"] = getInst()->getName();
+    dict["func_name"] = getInst()->getFunction()->getName();
+    dict["block_name"] = getInst()->getParent()->getName();
+    return dict;
 }
+
 
 const std::string AddrStmt::toString() const
 {
