@@ -944,10 +944,7 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
         else if(CmpVFGNode* cmp = SVFUtil::dyn_cast<CmpVFGNode>(node))
         {
             rawstr << cmp->toString();
-            //std::cout << "ok: " << cmp->toString() << std::endl;
             outs() << cmp->getAttrString() << "\n";
-            //std::flush(outs());
-            //assert(0);
         }
         else if(MSSAPHISVFGNode* mphi = SVFUtil::dyn_cast<MSSAPHISVFGNode>(node))
         {
@@ -957,7 +954,9 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
         else if(PHISVFGNode* tphi = SVFUtil::dyn_cast<PHISVFGNode>(node))
         {
             rawstr << tphi->toString();
-            outs() << tphi->getAttrString();
+            outs() << tphi->getAttrString() << "\n";
+            //std::flush(outs());
+            //assert(false);
         }
         else if(FormalINSVFGNode* fi = SVFUtil::dyn_cast<FormalINSVFGNode>(node))
         {

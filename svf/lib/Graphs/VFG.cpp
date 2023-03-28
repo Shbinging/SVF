@@ -309,6 +309,35 @@ const std::string PHIVFGNode::toString() const
 }
 
 
+const std::string IntraPHIVFGNode::getAttrString() const{
+    std::map<std::string, std::string> dict;
+    dict["node_type"] = "intraphi";
+
+    int s = 0;
+    for(PHIVFGNode::OPVers::const_iterator it = opVerBegin(), eit = opVerEnd();
+         it != eit; it++) s++;
+    dict["branch_number"] = std::to_string(s);
+
+    if (res->hasValue()){
+        dict["inst_full"] = res->getValue()->toString();
+    }else{
+        dict["inst_full"] = "";
+    }
+
+    if (getICFGNode()->getFun() == nullptr){
+        dict["func_name"] = "GLOBAL";
+    }else{
+        dict["func_name"] = getICFGNode()->getFun()->getName();
+    }
+    if (getICFGNode()->getBB() == nullptr){
+        dict["block_name"] = "GLOBAL";
+    }else
+    {
+        dict["block_name"] = getICFGNode()->getBB()->getName();
+    }
+    return dict2str(dict);
+}
+
 const std::string IntraPHIVFGNode::toString() const
 {
     std::string str;

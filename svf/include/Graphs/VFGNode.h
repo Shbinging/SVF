@@ -800,6 +800,7 @@ public:
     //@}
 
     const std::string toString() const override;
+    const std::string getAttrString() const override;
 };
 
 
@@ -1189,6 +1190,11 @@ public:
 
     const std::string toString() const override;
 
+    const std::string getAttrString() const override
+    {
+        assert(false && "InterPHIVFGNode getAttrString not implemented");
+        return "";
+    }
 private:
     const SVFFunction* fun;
     const CallICFGNode* callInst;
