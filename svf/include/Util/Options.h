@@ -248,6 +248,7 @@ public:
     // DOTGraphTraits
     static const Option<bool> ShowHiddenNode;
 
+
     // CFL option
     static const Option<std::string> GrammarFilename;
     static const Option<std::string> CFLGraph;
@@ -260,6 +261,11 @@ public:
     // Loop Analysis
     static const Option<bool> LoopAnalysis;
     static const Option<u32_t> LoopBound;
+
+    //SVFG Dot Option
+    static const Option<bool> MangleName;
+    static const Option<bool> DumpFeature;
+    static const Option<std::string> DumpFeatureFile;
 };
 }  // namespace SVF
 

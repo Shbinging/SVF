@@ -826,6 +826,7 @@ void SVFG::performStat()
 /*!
  * GraphTraits specialization
  */
+
 namespace SVF
 {
 template<>

@@ -841,4 +841,22 @@ const Option<u32_t> Options::LoopBound(
     1
 );
 
+const Option<bool> Options::MangleName(
+        "mangleName",
+        "to mangle rust/c++ function name",
+        false
+    );
+
+const Option<bool> Options::DumpFeature(
+        "dump-feature",
+        "to dump node and edge features",
+        false
+    );
+
+const Option<std::string> DumpFeatureFile(
+    "dump-featureFile",
+    "featureFile Path",
+    "svfg_feature.txt"
+    );
+
 } // namespace SVF.
