@@ -138,6 +138,28 @@ const NodeBS CmpVFGNode::getDefSVFVars() const
     return nb;
 }
 
+
+const std::string CmpVFGNode::getAttrString() const
+{
+    std::map<std::string, std::string> dict;
+    dict["node_type"] = "cmp";
+    auto res = getValue()->callLLVMFunction(0);
+    dict["inst_name"] = res["operand_name"];
+    dict["inst_full"] = getRes()->getValue()->toString();
+    if (getICFGNode()->getFun() == nullptr){
+        dict["func_name"] = "GLOBAL";
+    }else{
+        dict["func_name"] = getICFGNode()->getFun()->getName();
+    }
+    if (getICFGNode()->getBB() == nullptr){
+        dict["block_name"] = "GLOBAL";
+    }else
+    {
+        dict["block_name"] = getICFGNode()->getBB()->getName();
+    }
+    return dict2str(dict);
+}
+
 const std::string CmpVFGNode::toString() const
 {
     std::string str;

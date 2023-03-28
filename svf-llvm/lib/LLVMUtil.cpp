@@ -1082,6 +1082,9 @@ const std::string SVFType::toString() const
     std::string str;
     llvm::raw_string_ostream rawstr(str);
     const Type* ty = LLVMModuleSet::getLLVMModuleSet()->getLLVMType(this);
+    if (ty == nullptr){
+        return "";
+    }
     rawstr << *ty;
     return rawstr.str();
 }

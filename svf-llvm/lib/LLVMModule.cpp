@@ -980,6 +980,8 @@ const Type* LLVMModuleSet::getLLVMType(const SVFType* T) const
         if (it->second == T)
             return it->first;
     }
+    //std::cout << "ok:" << T->toString() << endl;
+    return nullptr;
     assert(false && "can't find the corresponding LLVM Type");
     abort();
 }

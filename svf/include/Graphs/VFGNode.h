@@ -115,6 +115,7 @@ public:
             rawstr << "\"" << item.first << "\"" << " : " << "\"" << item.second << "\",";
         }
         rawstr << "}";
+        //std::cout << rawstr.str() << "\n";
         return rawstr.str();
     }
 
@@ -425,6 +426,8 @@ public:
 
     const SVFValue* getValue() const override;
     const std::string toString() const override;
+
+    const std::string getAttrString() const override;
 };
 
 
