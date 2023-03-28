@@ -874,7 +874,10 @@ public:
     //@}
 
     const SVFValue* getValue() const override;
+
     const std::string toString() const override;
+
+    dictTy getAttrDict() const override;
 };
 
 /*
@@ -925,7 +928,10 @@ public:
 
     const NodeBS getDefSVFVars() const override;
 
+
     const std::string toString() const override;
+
+    dictTy getAttrDict() const override;
 };
 
 
@@ -996,6 +1002,8 @@ public:
     const NodeBS getDefSVFVars() const override;
 
     const std::string toString() const override;
+
+    dictTy getAttrDict() const override;
 };
 
 /*!
@@ -1054,6 +1062,8 @@ public:
     const NodeBS getDefSVFVars() const override;
 
     const std::string toString() const override;
+
+    dictTy getAttrDict() const override;
 };
 
 /*!
@@ -1120,6 +1130,8 @@ public:
     const NodeBS getDefSVFVars() const override;
 
     const std::string toString() const override;
+
+    dictTy getAttrDict() const override;
 };
 
 /*

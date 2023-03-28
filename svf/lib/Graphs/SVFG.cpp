@@ -936,7 +936,7 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
         if(StmtSVFGNode* stmtNode = SVFUtil::dyn_cast<StmtSVFGNode>(node))
         {
             rawstr << stmtNode->toString();
-            outs() << dict2str(stmtNode->getAttrDict()) << "\n";
+            //outs() << dict2str(stmtNode->getAttrDict()) << "\n";
         }
         else if(BinaryOPVFGNode* bop = SVFUtil::dyn_cast<BinaryOPVFGNode>(node))
         {
@@ -957,8 +957,6 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
         else if(PHISVFGNode* tphi = SVFUtil::dyn_cast<PHISVFGNode>(node))
         {
             rawstr << tphi->toString();
-            //std::flush(outs());
-            //assert(false);
         }
         else if(FormalINSVFGNode* fi = SVFUtil::dyn_cast<FormalINSVFGNode>(node))
         {
@@ -971,6 +969,7 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
         else if(FormalParmSVFGNode* fp = SVFUtil::dyn_cast<FormalParmSVFGNode>(node))
         {
             rawstr	<< fp->toString();
+            outs() << dict2str(fp->getAttrDict()) << "\n";
         }
         else if(ActualINSVFGNode* ai = SVFUtil::dyn_cast<ActualINSVFGNode>(node))
         {
@@ -983,6 +982,7 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
         else if(ActualParmSVFGNode* ap = SVFUtil::dyn_cast<ActualParmSVFGNode>(node))
         {
             rawstr << ap->toString();
+            outs() << dict2str(ap->getAttrDict()) << "\n";
         }
         else if(NullPtrSVFGNode* nptr = SVFUtil::dyn_cast<NullPtrSVFGNode>(node))
         {
@@ -991,10 +991,12 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
         else if (ActualRetSVFGNode* ar = SVFUtil::dyn_cast<ActualRetSVFGNode>(node))
         {
             rawstr << ar->toString();
+            outs() << dict2str(ar->getAttrDict()) << "\n";
         }
         else if (FormalRetSVFGNode* fr = SVFUtil::dyn_cast<FormalRetSVFGNode>(node))
         {
             rawstr << fr->toString();
+            outs() << dict2str(fr->getAttrDict()) << "\n";
         }
         else if (BranchVFGNode* br = SVFUtil::dyn_cast<BranchVFGNode>(node))
         {

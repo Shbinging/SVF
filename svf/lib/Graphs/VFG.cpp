@@ -33,6 +33,7 @@
 #include "Graphs/VFG.h"
 #include "SVFIR/SVFModule.h"
 #include "Util/SVFUtil.h"
+#include "Graphs/VFGNode.h"
 
 using namespace SVF;
 using namespace SVFUtil;
@@ -401,6 +402,12 @@ const std::string ActualParmVFGNode::toString() const
     rawstr << param->toString();
     return rawstr.str();
 }
+VFGNode::dictTy ActualParmVFGNode::getAttrDict() const
+{
+    auto dict =  ArgumentVFGNode::getAttrDict();
+    dict["node_type"] = "actualPram";
+    return dict;
+}
 
 const NodeBS FormalParmVFGNode::getDefSVFVars() const
 {
@@ -417,6 +424,13 @@ const std::string FormalParmVFGNode::toString() const
     rawstr << "Fun[" << getFun()->getName() << "]";
     rawstr << param->toString();
     return rawstr.str();
+}
+
+VFGNode::dictTy FormalParmVFGNode::getAttrDict() const
+{
+    auto dict =  ArgumentVFGNode::getAttrDict();
+    dict["node_type"] = "formalParm";
+    return dict;
 }
 
 const NodeBS ActualRetVFGNode::getDefSVFVars() const
@@ -436,6 +450,18 @@ const std::string ActualRetVFGNode::toString() const
     return rawstr.str();
 }
 
+VFGNode::dictTy ActualRetVFGNode::getAttrDict() const
+{
+    auto dict =  ArgumentVFGNode::getAttrDict();
+    dict["node_type"] = "actualRet";
+    dict["dest_name"] = getRev()->getValueName();
+    if (getRev()->getType() == nullptr){
+        dict["dest_type"] = "";
+    }else{
+        dict["dest_type"] = getRev()->getType()->toString();
+    }
+    return dict;
+}
 
 const NodeBS FormalRetVFGNode::getDefSVFVars() const
 {
@@ -530,6 +556,18 @@ const std::string RetDirSVFGEdge::toString() const
 FormalRetVFGNode::FormalRetVFGNode(NodeID id, const PAGNode* n, const SVFFunction* f) :
     ArgumentVFGNode(id, n, FRet), fun(f)
 {
+}
+VFGNode::dictTy FormalRetVFGNode::getAttrDict() const
+{
+    auto dict =  ArgumentVFGNode::getAttrDict();
+    dict["node_type"] = "formalRet";
+    dict["dest_name"] = getRet()->getValueName();
+    if (getRet()->getType() == nullptr){
+        dict["dest_type"] = "";
+    }else{
+        dict["dest_type"] = getRet()->getType()->toString();
+    }
+    return dict;
 }
 
 PHIVFGNode::PHIVFGNode(NodeID id, const PAGNode* r,VFGNodeK k): VFGNode(id, k), res(r)
@@ -1193,6 +1231,24 @@ const SVFValue* PHIVFGNode::getValue() const
 const SVFValue* ArgumentVFGNode::getValue() const
 {
     return param->hasValue() ? param->getValue() : nullptr;
+}
+
+VFGNode::dictTy ArgumentVFGNode::getAttrDict() const
+{
+    std::map<std::string, std::string> dict;
+    dict["inst_full"] = getValue()->toString();
+    if (getICFGNode()->getFun() == nullptr){
+        dict["func_name"] = "GLOBAL";
+    }else{
+        dict["func_name"] = getICFGNode()->getFun()->getName();
+    }
+    if (getICFGNode()->getBB() == nullptr){
+        dict["block_name"] = "GLOBAL";
+    }else
+    {
+        dict["block_name"] = getICFGNode()->getBB()->getName();
+    }
+    return dict;
 }
 
 /*!
