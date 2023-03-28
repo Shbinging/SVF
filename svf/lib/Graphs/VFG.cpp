@@ -61,11 +61,11 @@ const NodeBS LoadVFGNode::getDefSVFVars() const
     return nb;
 }
 
-const std::string LoadVFGNode::getAttrString() const {
+VFGNode::dictTy LoadVFGNode::getAttrDict() const {
     auto stmt = cast<AssignStmt>(getPAGEdge());
     auto attri = stmt->dumpAttri();
     attri["node_type"] = "load";
-    return VFGNode::dict2str(attri);
+    return attri;
 }
 
 const std::string LoadVFGNode::toString() const
@@ -91,12 +91,11 @@ const NodeBS StoreVFGNode::getDefSVFVars() const
     return nb;
 }
 
-
-const std::string StoreVFGNode::getAttrString() const {
+VFGNode::dictTy StoreVFGNode::getAttrDict() const {
     auto stmt = cast<AssignStmt>(getPAGEdge());
     auto attri = stmt->dumpAttri();
     attri["node_type"] = "store";
-    return VFGNode::dict2str(attri);
+    return attri;
 }
 
 const std::string StoreVFGNode::toString() const
@@ -115,11 +114,11 @@ const NodeBS CopyVFGNode::getDefSVFVars() const
     return nb;
 }
 
-const std::string CopyVFGNode::getAttrString() const {
+VFGNode::dictTy CopyVFGNode::getAttrDict() const {
     auto stmt = cast<AssignStmt>(getPAGEdge());
     auto attri = stmt->dumpAttri();
     attri["node_type"] = "copy";
-    return VFGNode::dict2str(attri);
+    return attri;
 }
 
 const std::string CopyVFGNode::toString() const
@@ -138,8 +137,7 @@ const NodeBS CmpVFGNode::getDefSVFVars() const
     return nb;
 }
 
-
-const std::string CmpVFGNode::getAttrString() const
+VFGNode::dictTy CmpVFGNode::getAttrDict() const
 {
     std::map<std::string, std::string> dict;
     dict["node_type"] = "cmp";
@@ -157,7 +155,7 @@ const std::string CmpVFGNode::getAttrString() const
     {
         dict["block_name"] = getICFGNode()->getBB()->getName();
     }
-    return dict2str(dict);
+    return dict;
 }
 
 const std::string CmpVFGNode::toString() const
@@ -184,7 +182,7 @@ const NodeBS BinaryOPVFGNode::getDefSVFVars() const
     return nb;
 }
 
-const std::string BinaryOPVFGNode::getAttrString() const {
+VFGNode::dictTy BinaryOPVFGNode::getAttrDict() const {
     std::map<std::string, std::string> dict;
     dict["node_type"] = "binary";
     dict["dest_name"] = getRes()->getValueName();
@@ -203,7 +201,7 @@ const std::string BinaryOPVFGNode::getAttrString() const {
     {
         dict["block_name"] = getICFGNode()->getBB()->getName();
     }
-    return VFGNode::dict2str(dict);
+    return dict;
 }
 
 const std::string BinaryOPVFGNode::toString() const
@@ -268,11 +266,11 @@ const NodeBS GepVFGNode::getDefSVFVars() const
     return nb;
 }
 
-const std::string GepVFGNode::getAttrString() const {
+VFGNode::dictTy GepVFGNode::getAttrDict() const {
     auto stmt = cast<AssignStmt>(getPAGEdge());
     auto attri = stmt->dumpAttri();
     attri["node_type"] = "gep";
-    return VFGNode::dict2str(attri);
+    return attri;
 }
 
 const std::string GepVFGNode::toString() const
@@ -308,8 +306,7 @@ const std::string PHIVFGNode::toString() const
     return rawstr.str();
 }
 
-
-const std::string IntraPHIVFGNode::getAttrString() const{
+VFGNode::dictTy IntraPHIVFGNode::getAttrDict() const{
     std::map<std::string, std::string> dict;
     dict["node_type"] = "intraphi";
 
@@ -335,7 +332,7 @@ const std::string IntraPHIVFGNode::getAttrString() const{
     {
         dict["block_name"] = getICFGNode()->getBB()->getName();
     }
-    return dict2str(dict);
+    return dict;
 }
 
 const std::string IntraPHIVFGNode::toString() const
@@ -362,11 +359,11 @@ const NodeBS AddrVFGNode::getDefSVFVars() const
     return nb;
 }
 
-const std::string AddrVFGNode::getAttrString() const {
+VFGNode::dictTy AddrVFGNode::getAttrDict() const {
     auto stmt = cast<AssignStmt>(getPAGEdge());
     auto attri = stmt->dumpAttri();
     attri["node_type"] = "addr";
-    return VFGNode::dict2str(attri);
+    return attri;
 }
 
 const std::string AddrVFGNode::toString() const

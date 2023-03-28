@@ -107,20 +107,8 @@ public:
 
     virtual const std::string toString() const;
 
-    static std::string dict2str(std::map<std::string, std::string> dict){
-        std::string str;
-        std::stringstream  rawstr(str);
-        rawstr << "svfattr:{";
-        for(auto& item: dict){
-            rawstr << "\"" << item.first << "\"" << " : " << "\"" << item.second << "\",";
-        }
-        rawstr << "}";
-        //std::cout << rawstr.str() << "\n";
-        return rawstr.str();
-    }
-
-    virtual const std::string getAttrString() const{
-        assert(0 && "VFGNode base getAttrString should never be used");
+    virtual dictTy getAttrDict() const{
+        assert(0 && "VFGNode base getAttrDict should never be used");
     }
 
     std::map<std::string, std::string> get_loc_dict() const{
@@ -267,7 +255,7 @@ public:
 
     const std::string toString() const override;
 
-    const std::string getAttrString() const override;
+    dictTy getAttrDict() const override;
 };
 
 /*!
@@ -310,7 +298,7 @@ public:
 
     const std::string toString() const override;
 
-    const std::string getAttrString() const override;
+    dictTy getAttrDict() const override;
 };
 
 /*!
@@ -353,7 +341,7 @@ public:
 
     const std::string toString() const override;
 
-    const std::string getAttrString() const override;
+    dictTy getAttrDict() const override;
 };
 
 
@@ -427,7 +415,7 @@ public:
     const SVFValue* getValue() const override;
     const std::string toString() const override;
 
-    const std::string getAttrString() const override;
+    dictTy getAttrDict() const override;
 };
 
 
@@ -500,7 +488,7 @@ public:
     const SVFValue* getValue() const override;
     const std::string toString() const override;
 
-    const std::string getAttrString() const override;
+    dictTy getAttrDict() const override;
 };
 
 /*!
@@ -672,7 +660,7 @@ public:
 
     const std::string toString() const override;
 
-    const std::string getAttrString() const override;
+    dictTy getAttrDict() const override;
 };
 
 /*
@@ -800,7 +788,7 @@ public:
     //@}
 
     const std::string toString() const override;
-    const std::string getAttrString() const override;
+    dictTy getAttrDict() const override;
 };
 
 
@@ -841,7 +829,7 @@ public:
 
     const std::string toString() const override;
 
-    const std::string getAttrString() const override;
+    dictTy getAttrDict() const override;
 };
 
 
@@ -1190,10 +1178,9 @@ public:
 
     const std::string toString() const override;
 
-    const std::string getAttrString() const override
+    dictTy getAttrDict() const override
     {
-        assert(false && "InterPHIVFGNode getAttrString not implemented");
-        return "";
+        assert(false && "InterPHIVFGNode getAttrDict not implemented");
     }
 private:
     const SVFFunction* fun;
