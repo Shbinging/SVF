@@ -38,7 +38,7 @@
 #include <fstream>
 #include "Util/Options.h"
 #include "Graphs/SVFGNode.h"
-#include "RustMangle/rustc_demangle.h"
+#include "RustDemangle/rustc_demangle.h"
 
 using namespace SVF;
 using namespace SVFUtil;
@@ -932,10 +932,19 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
 
         return rawstr.str();
     }
+    static std::string rustDemangle(std::string oriName){
+        char st[300];
+        int res = rustc_demangle(oriName.c_str(), st, 300);
+        return std::string(st);
+        assert(res);
+    }
 
     static std::string dict2str(std::map<std::string, std::string> dict){
         std::string str;
         std::stringstream  rawstr(str);
+        if (dict.find("func_name") != dict.end()){
+            dict["func_name"] = rustDemangle(dict["func_name"]);
+        }
         rawstr << "svfattr:{";
         for(auto& item: dict){
             rawstr << "\'" << item.first << "\'" << " : " << "\'" << item.second << "\', ";

@@ -22,6 +22,7 @@ file(
 # Refer to this link for detail:
 # https://stackoverflow.com/questions/68864536/cmake-linking-static-libraries-in-different-subdirectories-into-one-single-stati
 add_library(SvfCoreObj OBJECT ${SVF_CORE_SOURCES})
+target_link_libraries(SvfCoreObj PUBLIC rustc_demangle)
 add_library(SvfCore STATIC include/RustDemangle/rustc_demangle.h include/RustDemangle/rustc_demangle.h)
 target_link_libraries(SvfCore PUBLIC ${Z3_LIBRARIES} SvfCoreObj)
 link_directories("/home/shuibing/ptCode2vec/dataset/rustc-demangle/target/release/")
