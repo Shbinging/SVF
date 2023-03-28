@@ -108,7 +108,7 @@ public:
     virtual const std::string toString() const;
 
     virtual dictTy getAttrDict() const{
-        assert(0 && "VFGNode base getAttrDict should never be used");
+        assert(false && "vfgNode base getAttrDict should not use");
     }
 
     std::map<std::string, std::string> get_loc_dict() const{
@@ -563,6 +563,8 @@ public:
     const NodeBS getDefSVFVars() const override;
 
     virtual const std::string toString() const override;
+
+    dictTy getAttrDict() const override;
 };
 
 /*
@@ -618,6 +620,8 @@ public:
     const NodeBS getDefSVFVars() const override;
 
     virtual const std::string toString() const override;
+
+    dictTy getAttrDict() const override;
 };
 
 /*!
@@ -1243,6 +1247,8 @@ public:
     const NodeBS getDefSVFVars() const override;
 
     const std::string toString() const override;
+
+    dictTy getAttrDict() const override;
 };
 
 } // End namespace SVF

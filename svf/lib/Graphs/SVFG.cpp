@@ -37,6 +37,7 @@
 #include "MemoryModel/PointerAnalysisImpl.h"
 #include <fstream>
 #include "Util/Options.h"
+#include "Graphs/SVFGNode.h"
 
 using namespace SVF;
 using namespace SVFUtil;
@@ -174,6 +175,13 @@ const std::string IntraMSSAPHISVFGNode::toString() const
     return rawstr.str();
 }
 
+VFGNode::dictTy IntraMSSAPHISVFGNode::getAttrDict() const
+{
+    auto dict = MSSAPHISVFGNode::getAttrDict();
+    dict["node_type"] = "intraMssaPhi";
+    return dict;
+}
+
 const NodeBS DummyVersionPropSVFGNode::getDefSVFVars() const
 {
     NodeBS nb;
@@ -191,6 +199,13 @@ const std::string InterMSSAPHISVFGNode::toString() const
         rawstr << "ActualOUTPHISVFGNode ID: " << getId() << " at callsite: " <<  getCallSite()->getCallSite()->toString() << " {fun: " << getFun()->getName() << "}";
     rawstr << MSSAPHISVFGNode::toString();
     return rawstr.str();
+}
+
+VFGNode::dictTy InterMSSAPHISVFGNode::getAttrDict() const
+{
+    auto dict =  MSSAPHISVFGNode::getAttrDict();
+    dict["node_type"] = "interMssaPhi";
+    return dict;
 }
 
 const std::string IndirectSVFGEdge::toString() const

@@ -401,6 +401,8 @@ public:
     //@}
 
     virtual const std::string toString() const;
+
+    dictTy getAttrDict() const;
 };
 
 
@@ -463,6 +465,8 @@ public:
     //@}
 
     virtual const std::string toString() const;
+
+    dictTy getAttrDict() const;
 
 private:
     const SVFFunction* fun;

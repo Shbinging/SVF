@@ -140,22 +140,11 @@ const NodeBS CmpVFGNode::getDefSVFVars() const
 
 VFGNode::dictTy CmpVFGNode::getAttrDict() const
 {
-    std::map<std::string, std::string> dict;
+    std::map<std::string, std::string> dict = get_loc_dict();
     dict["node_type"] = "cmp";
     auto res = getValue()->callLLVMFunction(0);
     dict["inst_name"] = res["operand_name"];
     dict["inst_full"] = getRes()->getValue()->toString();
-    if (getICFGNode()->getFun() == nullptr){
-        dict["func_name"] = "GLOBAL";
-    }else{
-        dict["func_name"] = getICFGNode()->getFun()->getName();
-    }
-    if (getICFGNode()->getBB() == nullptr){
-        dict["block_name"] = "GLOBAL";
-    }else
-    {
-        dict["block_name"] = getICFGNode()->getBB()->getName();
-    }
     return dict;
 }
 
@@ -184,24 +173,13 @@ const NodeBS BinaryOPVFGNode::getDefSVFVars() const
 }
 
 VFGNode::dictTy BinaryOPVFGNode::getAttrDict() const {
-    std::map<std::string, std::string> dict;
+    std::map<std::string, std::string> dict = get_loc_dict();
     dict["node_type"] = "binary";
     dict["dest_name"] = getRes()->getValueName();
     dict["dest_type"] = getRes()->getType()->toString();
     dict["inst_full"] = getRes()->getValue()->toString();
     auto r = getRes()->getValue()->callLLVMFunction(0);
     dict["inst_name"] = r["operand_name"];
-    if (getICFGNode()->getFun() == nullptr){
-        dict["func_name"] = "GLOBAL";
-    }else{
-        dict["func_name"] = getICFGNode()->getFun()->getName();
-    }
-    if (getICFGNode()->getBB() == nullptr){
-        dict["block_name"] = "GLOBAL";
-    }else
-    {
-        dict["block_name"] = getICFGNode()->getBB()->getName();
-    }
     return dict;
 }
 
@@ -246,6 +224,13 @@ const std::string UnaryOPVFGNode::toString() const
     return rawstr.str();
 }
 
+VFGNode::dictTy UnaryOPVFGNode::getAttrDict() const
+{
+    auto dict =  get_loc_dict();
+    dict["node_type"] = "unary";
+    return dict;
+}
+
 const NodeBS BranchVFGNode::getDefSVFVars() const
 {
     return NodeBS();
@@ -258,6 +243,13 @@ const std::string BranchVFGNode::toString() const
     rawstr << "BranchVFGNode ID: " << getId() << " ";
     rawstr << "PAGEdge: [" << brstmt->toString() << "\t";
     return rawstr.str();
+}
+
+VFGNode::dictTy BranchVFGNode::getAttrDict() const
+{
+    auto dict =  get_loc_dict();
+    dict["node_type"] = "branch";
+    return dict;
 }
 
 const NodeBS GepVFGNode::getDefSVFVars() const
@@ -308,7 +300,7 @@ const std::string PHIVFGNode::toString() const
 }
 
 VFGNode::dictTy IntraPHIVFGNode::getAttrDict() const{
-    std::map<std::string, std::string> dict;
+    std::map<std::string, std::string> dict = get_loc_dict();
     dict["node_type"] = "intraphi";
 
     int s = 0;
@@ -322,17 +314,6 @@ VFGNode::dictTy IntraPHIVFGNode::getAttrDict() const{
         dict["inst_full"] = "";
     }
 
-    if (getICFGNode()->getFun() == nullptr){
-        dict["func_name"] = "GLOBAL";
-    }else{
-        dict["func_name"] = getICFGNode()->getFun()->getName();
-    }
-    if (getICFGNode()->getBB() == nullptr){
-        dict["block_name"] = "GLOBAL";
-    }else
-    {
-        dict["block_name"] = getICFGNode()->getBB()->getName();
-    }
     return dict;
 }
 
@@ -507,7 +488,12 @@ const std::string NullPtrVFGNode::toString() const
     rawstr << " PAGNode ID: " << node->getId() << "\n";
     return rawstr.str();
 }
-
+VFGNode::dictTy NullPtrVFGNode::getAttrDict() const
+{
+    auto dict = get_loc_dict();
+    dict["node_type"] = "nullPtr";
+    return dict;
+}
 
 const std::string VFGEdge::toString() const
 {
@@ -1235,19 +1221,8 @@ const SVFValue* ArgumentVFGNode::getValue() const
 
 VFGNode::dictTy ArgumentVFGNode::getAttrDict() const
 {
-    std::map<std::string, std::string> dict;
+    auto dict = get_loc_dict();
     dict["inst_full"] = getValue()->toString();
-    if (getICFGNode()->getFun() == nullptr){
-        dict["func_name"] = "GLOBAL";
-    }else{
-        dict["func_name"] = getICFGNode()->getFun()->getName();
-    }
-    if (getICFGNode()->getBB() == nullptr){
-        dict["block_name"] = "GLOBAL";
-    }else
-    {
-        dict["block_name"] = getICFGNode()->getBB()->getName();
-    }
     return dict;
 }
 
