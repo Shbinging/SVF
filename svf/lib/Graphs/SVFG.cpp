@@ -38,6 +38,7 @@
 #include <fstream>
 #include "Util/Options.h"
 #include "Graphs/SVFGNode.h"
+#include "RustMangle/rustc_demangle.h"
 
 using namespace SVF;
 using namespace SVFUtil;
