@@ -932,6 +932,7 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
 
         return rawstr.str();
     }
+
     static std::string rustDemangle(std::string oriName){
         char st[300];
         int res = rustc_demangle(oriName.c_str(), st, 300);
@@ -939,13 +940,32 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
         assert(res);
     }
 
-    static std::string dict2str(std::map<std::string, std::string> dict){
+    static std::string dict2str(std::map<std::string, std::string> dict_old){
+        std::map<std::string, std::string> dict;
         std::string str;
         std::stringstream  rawstr(str);
-        if (dict.find("func_name") != dict.end()){
-            dict["func_name"] = rustDemangle(dict["func_name"]);
+        //FIXME::mangle name need to mangle more name after @
+        //mangleName
+        if (Options::MangleName()){
+            if (dict_old.find("func_name") != dict_old.end()){
+                std::string old_func_name, new_func_name;
+                old_func_name = dict_old["func_name"];
+                new_func_name = rustDemangle(old_func_name);
+                for (auto& x: dict_old){
+                    std::string val = x.second;
+                    if (val.find(old_func_name) != std::string::npos){
+                        val.replace(val.find(old_func_name),old_func_name.length(),new_func_name);
+                    }
+                    dict[x.first] = val;
+                }
+            }else{
+                dict = dict_old;
+            }
+        }else{
+            dict = dict_old;
         }
-        rawstr << "svfattr:{";
+        //print
+        rawstr << "node_feature:{";
         for(auto& item: dict){
             rawstr << "\'" << item.first << "\'" << " : " << "\'" << item.second << "\', ";
         }
