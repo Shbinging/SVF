@@ -107,8 +107,8 @@ public:
 
     virtual const std::string toString() const;
 
-    virtual dictTy getAttrDict() const{
-        assert(false && "vfgNode base getAttrDict should not use");
+    virtual dictTy getFeatureDict() const{
+        assert(false && "vfgNode base getFeatureDict should not use");
     }
 
     std::map<std::string, std::string> get_loc_dict() const{
@@ -255,7 +255,7 @@ public:
 
     const std::string toString() const override;
 
-    dictTy getAttrDict() const override;
+    dictTy getFeatureDict() const override;
 };
 
 /*!
@@ -298,7 +298,7 @@ public:
 
     const std::string toString() const override;
 
-    dictTy getAttrDict() const override;
+    dictTy getFeatureDict() const override;
 };
 
 /*!
@@ -341,7 +341,7 @@ public:
 
     const std::string toString() const override;
 
-    dictTy getAttrDict() const override;
+    dictTy getFeatureDict() const override;
 };
 
 
@@ -415,7 +415,7 @@ public:
     const SVFValue* getValue() const override;
     const std::string toString() const override;
 
-    dictTy getAttrDict() const override;
+    dictTy getFeatureDict() const override;
 };
 
 
@@ -488,7 +488,7 @@ public:
     const SVFValue* getValue() const override;
     const std::string toString() const override;
 
-    dictTy getAttrDict() const override;
+    dictTy getFeatureDict() const override;
 };
 
 /*!
@@ -564,7 +564,7 @@ public:
 
     virtual const std::string toString() const override;
 
-    dictTy getAttrDict() const override;
+    dictTy getFeatureDict() const override;
 };
 
 /*
@@ -621,7 +621,7 @@ public:
 
     virtual const std::string toString() const override;
 
-    dictTy getAttrDict() const override;
+    dictTy getFeatureDict() const override;
 };
 
 /*!
@@ -664,7 +664,7 @@ public:
 
     const std::string toString() const override;
 
-    dictTy getAttrDict() const override;
+    dictTy getFeatureDict() const override;
 };
 
 /*
@@ -792,7 +792,7 @@ public:
     //@}
 
     const std::string toString() const override;
-    dictTy getAttrDict() const override;
+    dictTy getFeatureDict() const override;
 };
 
 
@@ -833,7 +833,7 @@ public:
 
     const std::string toString() const override;
 
-    dictTy getAttrDict() const override;
+    dictTy getFeatureDict() const override;
 };
 
 
@@ -881,7 +881,7 @@ public:
 
     const std::string toString() const override;
 
-    dictTy getAttrDict() const override;
+    dictTy getFeatureDict() const override;
 };
 
 /*
@@ -935,7 +935,7 @@ public:
 
     const std::string toString() const override;
 
-    dictTy getAttrDict() const override;
+    dictTy getFeatureDict() const override;
 };
 
 
@@ -1007,7 +1007,7 @@ public:
 
     const std::string toString() const override;
 
-    dictTy getAttrDict() const override;
+    dictTy getFeatureDict() const override;
 };
 
 /*!
@@ -1067,7 +1067,7 @@ public:
 
     const std::string toString() const override;
 
-    dictTy getAttrDict() const override;
+    dictTy getFeatureDict() const override;
 };
 
 /*!
@@ -1135,7 +1135,7 @@ public:
 
     const std::string toString() const override;
 
-    dictTy getAttrDict() const override;
+    dictTy getFeatureDict() const override;
 };
 
 /*
@@ -1194,9 +1194,9 @@ public:
 
     const std::string toString() const override;
 
-    dictTy getAttrDict() const override
+    dictTy getFeatureDict() const override
     {
-        assert(false && "InterPHIVFGNode getAttrDict not implemented");
+        assert(false && "InterPHIVFGNode getFeatureDict not implemented");
     }
 private:
     const SVFFunction* fun;
@@ -1248,7 +1248,7 @@ public:
 
     const std::string toString() const override;
 
-    dictTy getAttrDict() const override;
+    dictTy getFeatureDict() const override;
 };
 
 } // End namespace SVF

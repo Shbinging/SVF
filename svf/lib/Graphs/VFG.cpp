@@ -62,7 +62,7 @@ const NodeBS LoadVFGNode::getDefSVFVars() const
     return nb;
 }
 
-VFGNode::dictTy LoadVFGNode::getAttrDict() const {
+VFGNode::dictTy LoadVFGNode::getFeatureDict() const {
     auto stmt = cast<AssignStmt>(getPAGEdge());
     auto attri = stmt->dumpAttri();
     attri["node_type"] = "load";
@@ -92,7 +92,7 @@ const NodeBS StoreVFGNode::getDefSVFVars() const
     return nb;
 }
 
-VFGNode::dictTy StoreVFGNode::getAttrDict() const {
+VFGNode::dictTy StoreVFGNode::getFeatureDict() const {
     auto stmt = cast<AssignStmt>(getPAGEdge());
     auto attri = stmt->dumpAttri();
     attri["node_type"] = "store";
@@ -115,7 +115,7 @@ const NodeBS CopyVFGNode::getDefSVFVars() const
     return nb;
 }
 
-VFGNode::dictTy CopyVFGNode::getAttrDict() const {
+VFGNode::dictTy CopyVFGNode::getFeatureDict() const {
     auto stmt = cast<AssignStmt>(getPAGEdge());
     auto attri = stmt->dumpAttri();
     attri["node_type"] = "copy";
@@ -138,7 +138,7 @@ const NodeBS CmpVFGNode::getDefSVFVars() const
     return nb;
 }
 
-VFGNode::dictTy CmpVFGNode::getAttrDict() const
+VFGNode::dictTy CmpVFGNode::getFeatureDict() const
 {
     std::map<std::string, std::string> dict = get_loc_dict();
     dict["node_type"] = "cmp";
@@ -172,7 +172,7 @@ const NodeBS BinaryOPVFGNode::getDefSVFVars() const
     return nb;
 }
 
-VFGNode::dictTy BinaryOPVFGNode::getAttrDict() const {
+VFGNode::dictTy BinaryOPVFGNode::getFeatureDict() const {
     std::map<std::string, std::string> dict = get_loc_dict();
     dict["node_type"] = "binary";
     dict["dest_name"] = getRes()->getValueName();
@@ -224,7 +224,7 @@ const std::string UnaryOPVFGNode::toString() const
     return rawstr.str();
 }
 
-VFGNode::dictTy UnaryOPVFGNode::getAttrDict() const
+VFGNode::dictTy UnaryOPVFGNode::getFeatureDict() const
 {
     auto dict =  get_loc_dict();
     dict["node_type"] = "unary";
@@ -245,7 +245,7 @@ const std::string BranchVFGNode::toString() const
     return rawstr.str();
 }
 
-VFGNode::dictTy BranchVFGNode::getAttrDict() const
+VFGNode::dictTy BranchVFGNode::getFeatureDict() const
 {
     auto dict =  get_loc_dict();
     dict["node_type"] = "branch";
@@ -259,7 +259,7 @@ const NodeBS GepVFGNode::getDefSVFVars() const
     return nb;
 }
 
-VFGNode::dictTy GepVFGNode::getAttrDict() const {
+VFGNode::dictTy GepVFGNode::getFeatureDict() const {
     auto stmt = cast<AssignStmt>(getPAGEdge());
     auto attri = stmt->dumpAttri();
     attri["node_type"] = "gep";
@@ -299,7 +299,7 @@ const std::string PHIVFGNode::toString() const
     return rawstr.str();
 }
 
-VFGNode::dictTy IntraPHIVFGNode::getAttrDict() const{
+VFGNode::dictTy IntraPHIVFGNode::getFeatureDict() const{
     std::map<std::string, std::string> dict = get_loc_dict();
     dict["node_type"] = "intraphi";
 
@@ -341,7 +341,7 @@ const NodeBS AddrVFGNode::getDefSVFVars() const
     return nb;
 }
 
-VFGNode::dictTy AddrVFGNode::getAttrDict() const {
+VFGNode::dictTy AddrVFGNode::getFeatureDict() const {
     auto stmt = cast<AssignStmt>(getPAGEdge());
     auto attri = stmt->dumpAttri();
     attri["node_type"] = "addr";
@@ -383,9 +383,9 @@ const std::string ActualParmVFGNode::toString() const
     rawstr << param->toString();
     return rawstr.str();
 }
-VFGNode::dictTy ActualParmVFGNode::getAttrDict() const
+VFGNode::dictTy ActualParmVFGNode::getFeatureDict() const
 {
-    auto dict =  ArgumentVFGNode::getAttrDict();
+    auto dict = ArgumentVFGNode::getFeatureDict();
     dict["node_type"] = "actualPram";
     return dict;
 }
@@ -407,9 +407,9 @@ const std::string FormalParmVFGNode::toString() const
     return rawstr.str();
 }
 
-VFGNode::dictTy FormalParmVFGNode::getAttrDict() const
+VFGNode::dictTy FormalParmVFGNode::getFeatureDict() const
 {
-    auto dict =  ArgumentVFGNode::getAttrDict();
+    auto dict = ArgumentVFGNode::getFeatureDict();
     dict["node_type"] = "formalParm";
     return dict;
 }
@@ -431,9 +431,9 @@ const std::string ActualRetVFGNode::toString() const
     return rawstr.str();
 }
 
-VFGNode::dictTy ActualRetVFGNode::getAttrDict() const
+VFGNode::dictTy ActualRetVFGNode::getFeatureDict() const
 {
-    auto dict =  ArgumentVFGNode::getAttrDict();
+    auto dict = ArgumentVFGNode::getFeatureDict();
     dict["node_type"] = "actualRet";
     dict["dest_name"] = getRev()->getValueName();
     if (getRev()->getType() == nullptr){
@@ -488,7 +488,7 @@ const std::string NullPtrVFGNode::toString() const
     rawstr << " PAGNode ID: " << node->getId() << "\n";
     return rawstr.str();
 }
-VFGNode::dictTy NullPtrVFGNode::getAttrDict() const
+VFGNode::dictTy NullPtrVFGNode::getFeatureDict() const
 {
     auto dict = get_loc_dict();
     dict["node_type"] = "nullPtr";
@@ -543,9 +543,9 @@ FormalRetVFGNode::FormalRetVFGNode(NodeID id, const PAGNode* n, const SVFFunctio
     ArgumentVFGNode(id, n, FRet), fun(f)
 {
 }
-VFGNode::dictTy FormalRetVFGNode::getAttrDict() const
+VFGNode::dictTy FormalRetVFGNode::getFeatureDict() const
 {
-    auto dict =  ArgumentVFGNode::getAttrDict();
+    auto dict = ArgumentVFGNode::getFeatureDict();
     dict["node_type"] = "formalRet";
     dict["dest_name"] = getRet()->getValueName();
     if (getRet()->getType() == nullptr){
@@ -1219,7 +1219,7 @@ const SVFValue* ArgumentVFGNode::getValue() const
     return param->hasValue() ? param->getValue() : nullptr;
 }
 
-VFGNode::dictTy ArgumentVFGNode::getAttrDict() const
+VFGNode::dictTy ArgumentVFGNode::getFeatureDict() const
 {
     auto dict = get_loc_dict();
     dict["inst_full"] = getValue()->toString();

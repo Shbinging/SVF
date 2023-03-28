@@ -56,7 +56,7 @@ const std::string MRSVFGNode::toString() const
     return rawstr.str();
 }
 
-VFGNode::dictTy FormalINSVFGNode::getAttrDict() const{
+VFGNode::dictTy FormalINSVFGNode::getFeatureDict() const{
     auto dict = get_loc_dict();
     dict["node_type"] = "formalIn";
     dict["mr_id"] = std::to_string(getMRVer()->getMR()->getMRID());
@@ -76,7 +76,7 @@ const std::string FormalINSVFGNode::toString() const
     return rawstr.str();
 }
 
-VFGNode::dictTy FormalOUTSVFGNode::getAttrDict() const{
+VFGNode::dictTy FormalOUTSVFGNode::getFeatureDict() const{
     auto dict = get_loc_dict();
     dict["node_type"] = "formalOut";
     dict["mr_id"] = std::to_string(getMRVer()->getMR()->getMRID());
@@ -95,7 +95,7 @@ const std::string FormalOUTSVFGNode::toString() const
     return rawstr.str();
 }
 
-VFGNode::dictTy ActualINSVFGNode::getAttrDict() const{
+VFGNode::dictTy ActualINSVFGNode::getFeatureDict() const{
     auto dict = get_loc_dict();
     dict["node_type"] = "actualIn";
     dict["mr_id"] = std::to_string(getMRVer()->getMR()->getMRID());
@@ -116,7 +116,7 @@ const std::string ActualINSVFGNode::toString() const
     return rawstr.str();
 }
 
-VFGNode::dictTy ActualOUTSVFGNode::getAttrDict() const{
+VFGNode::dictTy ActualOUTSVFGNode::getFeatureDict() const{
     auto dict = get_loc_dict();
     dict["node_type"] = "actualOut";
     dict["mr_id"] = std::to_string(getMRVer()->getMR()->getMRID());
@@ -138,7 +138,7 @@ const std::string ActualOUTSVFGNode::toString() const
     return rawstr.str();
 }
 
-VFGNode::dictTy MSSAPHISVFGNode::getAttrDict() const{
+VFGNode::dictTy MSSAPHISVFGNode::getFeatureDict() const{
     auto dict = get_loc_dict();
     dict["node_type"] = "mssaPhi";
     int s = 0;
@@ -175,9 +175,9 @@ const std::string IntraMSSAPHISVFGNode::toString() const
     return rawstr.str();
 }
 
-VFGNode::dictTy IntraMSSAPHISVFGNode::getAttrDict() const
+VFGNode::dictTy IntraMSSAPHISVFGNode::getFeatureDict() const
 {
-    auto dict = MSSAPHISVFGNode::getAttrDict();
+    auto dict = MSSAPHISVFGNode::getFeatureDict();
     dict["node_type"] = "intraMssaPhi";
     return dict;
 }
@@ -201,9 +201,9 @@ const std::string InterMSSAPHISVFGNode::toString() const
     return rawstr.str();
 }
 
-VFGNode::dictTy InterMSSAPHISVFGNode::getAttrDict() const
+VFGNode::dictTy InterMSSAPHISVFGNode::getFeatureDict() const
 {
-    auto dict =  MSSAPHISVFGNode::getAttrDict();
+    auto dict = MSSAPHISVFGNode::getFeatureDict();
     dict["node_type"] = "interMssaPhi";
     return dict;
 }
@@ -952,7 +952,7 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
         if(StmtSVFGNode* stmtNode = SVFUtil::dyn_cast<StmtSVFGNode>(node))
         {
             rawstr << stmtNode->toString();
-            //outs() << dict2str(stmtNode->getAttrDict()) << "\n";
+            //outs() << dict2str(stmtNode->getFeatureDict()) << "\n";
         }
         else if(BinaryOPVFGNode* bop = SVFUtil::dyn_cast<BinaryOPVFGNode>(node))
         {
@@ -985,7 +985,7 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
         else if(FormalParmSVFGNode* fp = SVFUtil::dyn_cast<FormalParmSVFGNode>(node))
         {
             rawstr	<< fp->toString();
-            outs() << dict2str(fp->getAttrDict()) << "\n";
+            outs() << dict2str(fp->getFeatureDict()) << "\n";
         }
         else if(ActualINSVFGNode* ai = SVFUtil::dyn_cast<ActualINSVFGNode>(node))
         {
@@ -998,7 +998,7 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
         else if(ActualParmSVFGNode* ap = SVFUtil::dyn_cast<ActualParmSVFGNode>(node))
         {
             rawstr << ap->toString();
-            outs() << dict2str(ap->getAttrDict()) << "\n";
+            outs() << dict2str(ap->getFeatureDict()) << "\n";
         }
         else if(NullPtrSVFGNode* nptr = SVFUtil::dyn_cast<NullPtrSVFGNode>(node))
         {
@@ -1007,12 +1007,12 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
         else if (ActualRetSVFGNode* ar = SVFUtil::dyn_cast<ActualRetSVFGNode>(node))
         {
             rawstr << ar->toString();
-            outs() << dict2str(ar->getAttrDict()) << "\n";
+            outs() << dict2str(ar->getFeatureDict()) << "\n";
         }
         else if (FormalRetSVFGNode* fr = SVFUtil::dyn_cast<FormalRetSVFGNode>(node))
         {
             rawstr << fr->toString();
-            outs() << dict2str(fr->getAttrDict()) << "\n";
+            outs() << dict2str(fr->getFeatureDict()) << "\n";
         }
         else if (BranchVFGNode* br = SVFUtil::dyn_cast<BranchVFGNode>(node))
         {

@@ -129,7 +129,7 @@ public:
     //@}
 
     virtual const std::string toString() const;
-    dictTy getAttrDict() const;
+    dictTy getFeatureDict() const;
 };
 
 
@@ -172,7 +172,7 @@ public:
     //@}
 
     virtual const std::string toString() const;
-    dictTy getAttrDict() const;
+    dictTy getFeatureDict() const;
 };
 
 
@@ -223,7 +223,7 @@ public:
 
     virtual const std::string toString() const;
 
-    dictTy getAttrDict() const;
+    dictTy getFeatureDict() const;
 };
 
 
@@ -271,7 +271,7 @@ public:
     //@}
 
     virtual const std::string toString() const;
-    dictTy getAttrDict() const;
+    dictTy getFeatureDict() const;
 };
 
 
@@ -346,7 +346,7 @@ public:
     //@}
 
     virtual const std::string toString() const;
-    dictTy getAttrDict() const;
+    dictTy getFeatureDict() const;
 };
 
 /*
@@ -402,7 +402,7 @@ public:
 
     virtual const std::string toString() const;
 
-    dictTy getAttrDict() const;
+    dictTy getFeatureDict() const;
 };
 
 
@@ -466,7 +466,7 @@ public:
 
     virtual const std::string toString() const;
 
-    dictTy getAttrDict() const;
+    dictTy getFeatureDict() const;
 
 private:
     const SVFFunction* fun;
