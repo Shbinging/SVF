@@ -180,9 +180,10 @@ int main(int argc, char ** argv)
 
     /// Sparse value-flow graph (SVFG)
     SVFGBuilder svfBuilder(true);
-    //SVFG* svfg =
-    svfBuilder.buildFullSVFG(ander);
-
+    SVFG* svfg = svfBuilder.buildFullSVFG(ander);
+    svfg->preDumpFeatures(Options::DumpFeatureFile());
+    svfg->dump(Options::DumpSVFGFile());
+    svfg->afterDumpFeatures();
     /// Collect uses of an LLVM Value
     /// traverseOnVFG(svfg, value);
 

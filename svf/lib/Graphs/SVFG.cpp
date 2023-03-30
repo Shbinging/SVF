@@ -866,7 +866,6 @@ void replaceAll(std::string& str, const std::string& from, const std::string& to
 template<>
 struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
 {
-
     typedef SVFGNode NodeType;
     DOTGraphTraits(bool isSimple = false) :
         DOTGraphTraits<SVFIR*>(isSimple)
@@ -1000,7 +999,7 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
                 }
             }
         }
-        if (Options::MangleCName()){
+        if (Options::MangleCPPName()){
             std::regex regex_pattern("_Z[a-zA-Z0-9.$_]+");
             for (auto& it : dict)
             {
@@ -1012,12 +1011,15 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
                 while (sr_it != end)
                 {
                     std::string catch_str = (*sr_it)[0];
+                    sr_it++;
                     s32_t status;
                     char* realname = abi::__cxa_demangle(catch_str.c_str(), 0, 0, &status);
+                    if (realname == nullptr){
+                        continue;
+                    }
                     assert(realname != nullptr);
                     std::string  realname_str(realname);
                     replaceAll(it.second, catch_str, realname_str);
-                    sr_it++;
                 }
             }
         }
@@ -1030,8 +1032,10 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
         //std::cout << rawstr.str() << "\n";
         return rawstr.str();
     }
+
+
     /// Return label of a VFG node with MemSSA information
-    static std::string getCompleteNodeLabel(NodeType *node, SVFG*)
+    static std::string getCompleteNodeLabel(NodeType *node, SVFG* g)
     {
 
         std::string str;
@@ -1039,72 +1043,135 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
         if(StmtSVFGNode* stmtNode = SVFUtil::dyn_cast<StmtSVFGNode>(node))
         {
             rawstr << stmtNode->toString();
-            //outs() << dict2str(stmtNode->getFeatureDict()) << "\n";
+
+            if(Options::DumpFeature()){
+                g->fout << "Node" << static_cast<const void*>(node) << "\t";
+                g->fout << dict2str(stmtNode->getFeatureDict()) << "\n";
+            }
         }
         else if(BinaryOPVFGNode* bop = SVFUtil::dyn_cast<BinaryOPVFGNode>(node))
         {
             rawstr << bop->toString();
-            //outs() << dict2str(bop->getFeatureDict()) << "\n";
+            if(Options::DumpFeature()){
+                g->fout << "Node" << static_cast<const void*>(node) << "\t";
+                g->fout << dict2str(bop->getFeatureDict()) << "\n";
+            }
         }
         else if(UnaryOPVFGNode* uop = SVFUtil::dyn_cast<UnaryOPVFGNode>(node))
         {
             rawstr << uop->toString();
+            if(Options::DumpFeature()){
+                g->fout << "Node" <<  static_cast<const void*>(node) << "\t";
+                g->fout << dict2str(uop->getFeatureDict()) << "\n";
+            }
         }
         else if(CmpVFGNode* cmp = SVFUtil::dyn_cast<CmpVFGNode>(node))
         {
             rawstr << cmp->toString();
+            if(Options::DumpFeature()){
+                g->fout << "Node" <<  static_cast<const void*>(node) << "\t";
+                g->fout << dict2str(cmp->getFeatureDict()) << "\n";
+            }
         }
         else if(MSSAPHISVFGNode* mphi = SVFUtil::dyn_cast<MSSAPHISVFGNode>(node))
         {
             rawstr << mphi->toString();
+            if(Options::DumpFeature()){
+                g->fout << "Node" <<  static_cast<const void*>(node) << "\t";
+                g->fout << dict2str(mphi->getFeatureDict()) << "\n";
+            }
         }
         else if(PHISVFGNode* tphi = SVFUtil::dyn_cast<PHISVFGNode>(node))
         {
             rawstr << tphi->toString();
+            if(Options::DumpFeature()){
+                g->fout << "Node" <<  static_cast<const void*>(node) << "\t";
+                g->fout << dict2str(tphi->getFeatureDict()) << "\n";
+            }
         }
         else if(FormalINSVFGNode* fi = SVFUtil::dyn_cast<FormalINSVFGNode>(node))
         {
             rawstr	<< fi->toString();
+            if(Options::DumpFeature()){
+                g->fout <<  "Node" << static_cast<const void*>(node) << "\t";
+                g->fout << dict2str(fi->getFeatureDict()) << "\n";
+            }
         }
         else if(FormalOUTSVFGNode* fo = SVFUtil::dyn_cast<FormalOUTSVFGNode>(node))
         {
             rawstr << fo->toString();
+            if(Options::DumpFeature()){
+                g->fout << "Node" <<  static_cast<const void*>(node) << "\t";
+                g->fout << dict2str(fo->getFeatureDict()) << "\n";
+            }
         }
         else if(FormalParmSVFGNode* fp = SVFUtil::dyn_cast<FormalParmSVFGNode>(node))
         {
             rawstr	<< fp->toString();
+            if(Options::DumpFeature()){
+                g->fout << "Node" <<  static_cast<const void*>(node) << "\t";
+                g->fout << dict2str(fp->getFeatureDict()) << "\n";
+            }
             //outs() << dict2str(fp->getFeatureDict()) << "\n";
         }
         else if(ActualINSVFGNode* ai = SVFUtil::dyn_cast<ActualINSVFGNode>(node))
         {
             rawstr << ai->toString();
+            if(Options::DumpFeature()){
+                g->fout << "Node" << static_cast<const void*>(node) << "\t";
+                g->fout << dict2str(ai->getFeatureDict()) << "\n";
+            }
         }
         else if(ActualOUTSVFGNode* ao = SVFUtil::dyn_cast<ActualOUTSVFGNode>(node))
         {
             rawstr <<  ao->toString();
+            if(Options::DumpFeature()){
+                g->fout << "Node" <<  static_cast<const void*>(node) << "\t";
+                g->fout << dict2str(ao->getFeatureDict()) << "\n";
+            }
         }
         else if(ActualParmSVFGNode* ap = SVFUtil::dyn_cast<ActualParmSVFGNode>(node))
         {
             rawstr << ap->toString();
+            if(Options::DumpFeature()){
+                g->fout << "Node" <<  static_cast<const void*>(node) << "\t";
+                g->fout << dict2str(ap->getFeatureDict()) << "\n";
+            }
             //outs() << dict2str(ap->getFeatureDict()) << "\n";
         }
         else if(NullPtrSVFGNode* nptr = SVFUtil::dyn_cast<NullPtrSVFGNode>(node))
         {
             rawstr << nptr->toString();
+            if(Options::DumpFeature()){
+                g->fout << "Node" <<  static_cast<const void*>(node) << "\t";
+                g->fout << dict2str(nptr->getFeatureDict()) << "\n";
+            }
         }
         else if (ActualRetSVFGNode* ar = SVFUtil::dyn_cast<ActualRetSVFGNode>(node))
         {
             rawstr << ar->toString();
-            outs() << dict2str(ar->getFeatureDict()) << "\n";
+            //outs() << dict2str(ar->getFeatureDict()) << "\n";
+            if(Options::DumpFeature()){
+                g->fout << "Node" <<  static_cast<const void*>(node) << "\t";
+                g->fout << dict2str(ar->getFeatureDict()) << "\n";
+            }
         }
         else if (FormalRetSVFGNode* fr = SVFUtil::dyn_cast<FormalRetSVFGNode>(node))
         {
             rawstr << fr->toString();
+            if(Options::DumpFeature()){
+                g->fout << "Node" <<  static_cast<const void*>(node) << "\t";
+                g->fout << dict2str(fr->getFeatureDict()) << "\n";
+            }
             //outs() << dict2str(fr->getFeatureDict()) << "\n";
         }
         else if (BranchVFGNode* br = SVFUtil::dyn_cast<BranchVFGNode>(node))
         {
             rawstr << br->toString();
+            if(Options::DumpFeature()){
+                g->fout << "Node" <<  static_cast<const void*>(node) << "\t";
+                g->fout << dict2str(br->getFeatureDict()) << "\n";
+            }
         }
         else
             assert(false && "what else kinds of nodes do we have??");

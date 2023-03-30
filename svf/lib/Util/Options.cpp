@@ -841,8 +841,8 @@ const Option<u32_t> Options::LoopBound(
     1
 );
 
-const Option<bool> Options::MangleCName(
-        "mangleCName",
+const Option<bool> Options::MangleCPPName(
+        "mangleCPPName",
         "to mangle rust/c++ function name",
         false
     );
@@ -859,8 +859,14 @@ const Option<bool> Options::DumpFeature(
         false
     );
 
-const Option<std::string> DumpFeatureFile(
-    "dump-featureFile",
+const Option<std::string> Options::DumpSVFGFile(
+        "dump-svfgfile",
+        "to dump svfg file",
+        "svfg_final.dot"
+    );
+
+const Option<std::string> Options::DumpFeatureFile(
+    "dump-featurefile",
     "featureFile Path",
     "svfg_feature.txt"
     );

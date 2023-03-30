@@ -264,9 +264,10 @@ public:
 
     //SVFG Dot Option
     static const Option<bool> MangleRustName;
-    static const Option<bool> MangleCName;
+    static const Option<bool> MangleCPPName;
     static const Option<bool> DumpFeature;
     static const Option<std::string> DumpFeatureFile;
+    static const Option<std::string> DumpSVFGFile;
 };
 }  // namespace SVF
 

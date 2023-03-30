@@ -271,6 +271,16 @@ public:
     virtual void readFile(const std::string& filename);
     virtual MRVer* getMRVERFromString(const std::string& input);
 
+    std::ofstream fout;
+
+    void preDumpFeatures(const std::string& filename){
+        fout.open(filename.c_str(), std::ios::out | std::ios::trunc);
+    }
+
+    void afterDumpFeatures(){
+        fout.close();
+    }
+
 protected:
     /// Add indirect def-use edges of a memory region between two statements,
     //@{
