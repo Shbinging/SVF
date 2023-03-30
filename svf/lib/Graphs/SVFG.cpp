@@ -39,7 +39,7 @@
 #include "Util/Options.h"
 #include "Graphs/SVFGNode.h"
 #include "RustDemangle/rustc_demangle.h"
-
+#include <regex>
 using namespace SVF;
 using namespace SVFUtil;
 
@@ -830,6 +830,37 @@ void SVFG::performStat()
 
 namespace SVF
 {
+
+// trim from start (in place)
+static inline void ltrim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+                return !std::isspace(ch);
+            }));
+}
+
+// trim from end (in place)
+static inline void rtrim(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+                return !std::isspace(ch);
+            }).base(), s.end());
+}
+
+// trim from both ends (in place)
+static inline void trim(std::string &s) {
+    rtrim(s);
+    ltrim(s);
+}
+
+void replaceAll(std::string& str, const std::string& from, const std::string& to) {
+    if(from.empty())
+        return;
+    size_t start_pos = 0;
+    while((start_pos = str.find(from, start_pos)) != std::string::npos) {
+        str.replace(start_pos, from.length(), to);
+        start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
+    }
+}
+
 template<>
 struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
 {
@@ -940,29 +971,30 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
         assert(res);
     }
 
-    static std::string dict2str(std::map<std::string, std::string> dict_old){
-        std::map<std::string, std::string> dict;
+
+    static std::string dict2str(std::map<std::string, std::string> dict){
         std::string str;
         std::stringstream  rawstr(str);
         //FIXME::mangle name need to mangle more name after @
         //mangleName
-        if (Options::MangleName()){
-            if (dict_old.find("func_name") != dict_old.end()){
-                std::string old_func_name, new_func_name;
-                old_func_name = dict_old["func_name"];
-                new_func_name = rustDemangle(old_func_name);
-                for (auto& x: dict_old){
-                    std::string val = x.second;
-                    if (val.find(old_func_name) != std::string::npos){
-                        val.replace(val.find(old_func_name),old_func_name.length(),new_func_name);
-                    }
-                    dict[x.first] = val;
+        if (Options::MangleName())
+        {
+            std::regex regex_pattern("_ZN[a-zA-Z0-9.$_]+E");
+            for (auto& it : dict)
+            {
+                trim(it.second);
+                std::string old_target, new_target;
+                old_target = it.second;
+                std::sregex_iterator sr_it(old_target.begin(), old_target.end(),
+                                           regex_pattern);
+                std::sregex_iterator end;
+                while (sr_it != end)
+                {
+                    std::string catch_str = (*sr_it)[0];
+                    replaceAll(it.second, catch_str, rustDemangle(catch_str));
+                    sr_it++;
                 }
-            }else{
-                dict = dict_old;
             }
-        }else{
-            dict = dict_old;
         }
         //print
         rawstr << "node_feature:{";
@@ -987,6 +1019,7 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
         else if(BinaryOPVFGNode* bop = SVFUtil::dyn_cast<BinaryOPVFGNode>(node))
         {
             rawstr << bop->toString();
+            //outs() << dict2str(bop->getFeatureDict()) << "\n";
         }
         else if(UnaryOPVFGNode* uop = SVFUtil::dyn_cast<UnaryOPVFGNode>(node))
         {
@@ -1015,7 +1048,7 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
         else if(FormalParmSVFGNode* fp = SVFUtil::dyn_cast<FormalParmSVFGNode>(node))
         {
             rawstr	<< fp->toString();
-            outs() << dict2str(fp->getFeatureDict()) << "\n";
+            //outs() << dict2str(fp->getFeatureDict()) << "\n";
         }
         else if(ActualINSVFGNode* ai = SVFUtil::dyn_cast<ActualINSVFGNode>(node))
         {
@@ -1028,7 +1061,7 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
         else if(ActualParmSVFGNode* ap = SVFUtil::dyn_cast<ActualParmSVFGNode>(node))
         {
             rawstr << ap->toString();
-            outs() << dict2str(ap->getFeatureDict()) << "\n";
+            //outs() << dict2str(ap->getFeatureDict()) << "\n";
         }
         else if(NullPtrSVFGNode* nptr = SVFUtil::dyn_cast<NullPtrSVFGNode>(node))
         {
@@ -1042,7 +1075,7 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
         else if (FormalRetSVFGNode* fr = SVFUtil::dyn_cast<FormalRetSVFGNode>(node))
         {
             rawstr << fr->toString();
-            outs() << dict2str(fr->getFeatureDict()) << "\n";
+            //outs() << dict2str(fr->getFeatureDict()) << "\n";
         }
         else if (BranchVFGNode* br = SVFUtil::dyn_cast<BranchVFGNode>(node))
         {
