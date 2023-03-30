@@ -131,8 +131,8 @@ static void handleThunkFunction(cppUtil::DemangledName& dname)
 
 /*
  * input: _ZN****
- * after abi::__cxa_demangle:
- * namespace::A<...::...>::f<...::...>(...)
+ * after :
+ * namespacabi::__cxa_demanglee::A<...::...>::f<...::...>(...)
  *                       ^
  *                    delimiter
  *

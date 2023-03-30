@@ -841,11 +841,17 @@ const Option<u32_t> Options::LoopBound(
     1
 );
 
-const Option<bool> Options::MangleName(
-        "mangleName",
+const Option<bool> Options::MangleCName(
+        "mangleCName",
         "to mangle rust/c++ function name",
         false
     );
+
+const Option<bool> Options::MangleRustName(
+    "mangleRustName",
+    "to mangle rust/c++ function name",
+    false
+);
 
 const Option<bool> Options::DumpFeature(
         "dump-feature",

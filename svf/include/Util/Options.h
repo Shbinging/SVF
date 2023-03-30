@@ -263,7 +263,8 @@ public:
     static const Option<u32_t> LoopBound;
 
     //SVFG Dot Option
-    static const Option<bool> MangleName;
+    static const Option<bool> MangleRustName;
+    static const Option<bool> MangleCName;
     static const Option<bool> DumpFeature;
     static const Option<std::string> DumpFeatureFile;
 };

@@ -40,6 +40,8 @@
 #include "Graphs/SVFGNode.h"
 #include "RustDemangle/rustc_demangle.h"
 #include <regex>
+#include "Util/CppUtil.h"
+#include <cxxabi.h>
 using namespace SVF;
 using namespace SVFUtil;
 
@@ -975,14 +977,16 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
     static std::string dict2str(std::map<std::string, std::string> dict){
         std::string str;
         std::stringstream  rawstr(str);
+        for(auto &it: dict){
+            trim(it.second);
+        }
         //FIXME::mangle name need to mangle more name after @
         //mangleName
-        if (Options::MangleName())
+        if (Options::MangleRustName())
         {
             std::regex regex_pattern("_ZN[a-zA-Z0-9.$_]+");
             for (auto& it : dict)
             {
-                trim(it.second);
                 std::string old_target, new_target;
                 old_target = it.second;
                 std::sregex_iterator sr_it(old_target.begin(), old_target.end(),
@@ -992,6 +996,27 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
                 {
                     std::string catch_str = (*sr_it)[0];
                     replaceAll(it.second, catch_str, rustDemangle(catch_str));
+                    sr_it++;
+                }
+            }
+        }
+        if (Options::MangleCName()){
+            std::regex regex_pattern("_Z[a-zA-Z0-9.$_]+");
+            for (auto& it : dict)
+            {
+                std::string old_target, new_target;
+                old_target = it.second;
+                std::sregex_iterator sr_it(old_target.begin(), old_target.end(),
+                                           regex_pattern);
+                std::sregex_iterator end;
+                while (sr_it != end)
+                {
+                    std::string catch_str = (*sr_it)[0];
+                    s32_t status;
+                    char* realname = abi::__cxa_demangle(catch_str.c_str(), 0, 0, &status);
+                    assert(realname != nullptr);
+                    std::string  realname_str(realname);
+                    replaceAll(it.second, catch_str, realname_str);
                     sr_it++;
                 }
             }
