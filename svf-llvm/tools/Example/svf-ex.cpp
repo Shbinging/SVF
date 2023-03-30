@@ -132,10 +132,10 @@ void traverseOnVFG(const SVFG* vfg, SVFValue* val)
     /// Collect all LLVM Values
     for(Set<const VFGNode*>::const_iterator it = visited.begin(), eit = visited.end(); it!=eit; ++it)
     {
-        // const VFGNode* node = *it;
+         ///const VFGNode* node = *it;
         /// can only query VFGNode involving top-level pointers (starting with % or @ in LLVM IR)
-        /// PAGNode* pNode = vfg->getLHSTopLevPtr(node);
-        /// SVFValue* val = pNode->getValue();
+        ///PAGNode* pNode = vfg->getLHSTopLevPtr(node);
+        ///SVFValue* val = pNode->getValue();
     }
 }
 
@@ -172,8 +172,8 @@ int main(int argc, char ** argv)
     PTACallGraph* callgraph = ander->getPTACallGraph();
 
     /// ICFG
-    ICFG* icfg = pag->getICFG();
-    icfg->dump("icfg");
+    ///ICFG* icfg = pag->getICFG();
+    //icfg->dump("icfg");
 
     /// Value-Flow Graph (VFG)
     VFG* vfg = new VFG(callgraph);
@@ -185,7 +185,7 @@ int main(int argc, char ** argv)
     svfg->dump(Options::DumpSVFGFile());
     svfg->afterDumpFeatures();
     /// Collect uses of an LLVM Value
-    /// traverseOnVFG(svfg, value);
+    ///traverseOnVFG(svfg, value);
 
     /// Collect all successor nodes on ICFG
     /// traverseOnICFG(icfg, value);
@@ -195,7 +195,7 @@ int main(int argc, char ** argv)
     AndersenWaveDiff::releaseAndersenWaveDiff();
     SVFIR::releaseSVFIR();
 
-    LLVMModuleSet::getLLVMModuleSet()->dumpModulesToFile(".svf.bc");
+    /// LLVMModuleSet::getLLVMModuleSet()->dumpModulesToFile(".svf.bc");
     SVF::LLVMModuleSet::releaseLLVMModuleSet();
 
     llvm::llvm_shutdown();
