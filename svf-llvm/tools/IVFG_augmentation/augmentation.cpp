@@ -4,6 +4,7 @@
 #include "SVF-LLVM/SVFIRBuilder.h"
 #include "Util/CommandLine.h"
 #include "Util/Options.h"
+#include<stdio.h>
 
 using namespace std;
 using namespace SVF;
@@ -37,21 +38,6 @@ void replaceAll(std::string& str, const std::string& from, const std::string& to
     }
 }
 
-std::map<std::string, std::string> get_loc_dict(SVFGNode* node){
-    std::map<std::string, std::string> dict;
-    if (node->getICFGNode()->getFun() == nullptr){
-        dict["func_name"] = "GLOBAL";
-    }else{
-        dict["func_name"] = node->getICFGNode()->getFun()->getName();
-    }
-    if (node->getICFGNode()->getBB() == nullptr){
-        dict["block_name"] = "GLOBAL";
-    }else
-    {
-        dict["block_name"] = node->getICFGNode()->getBB()->getName();
-    }
-    return dict;
-}
 
 static std::string dict2str(std::map<std::string, std::string> dict){
     std::string str;
@@ -67,12 +53,82 @@ static std::string dict2str(std::map<std::string, std::string> dict){
     rawstr << "}";
     return rawstr.str();
 }
+typedef std::map<std::string, std::string> dictTy;
+void fea_loc(SVFGNode* node, dictTy& dict){
+    if (node->getICFGNode()->getFun() == nullptr){
+        dict["func_name"] = "GLOBAL";
+    }else{
+        dict["func_name"] = node->getICFGNode()->getFun()->getName();
+    }
+    if (node->getICFGNode()->getBB() == nullptr){
+        dict["block_name"] = "GLOBAL";
+    }else
+    {
+        dict["block_name"] = node->getICFGNode()->getBB()->getName();
+    }
+}
 
-#include<stdio.h>
+#define NodeK(x) {SVFGNode::VFGNodeK::x, #x}
+std::map<SVFGNode::VFGNodeK, std::string> nodeType2Str = {
+    NodeK(Addr), NodeK(Copy), NodeK(Gep), NodeK(Store), NodeK(Load), NodeK(Cmp), NodeK(BinaryOp), NodeK(UnaryOp), NodeK(Branch), NodeK(TPhi), NodeK(TIntraPhi), NodeK(TInterPhi), NodeK(MPhi), NodeK(MIntraPhi), NodeK(MInterPhi), NodeK(FRet), NodeK(ARet), NodeK(AParm), NodeK(FParm), NodeK(FunRet), NodeK(APIN), NodeK(APOUT), NodeK(FPIN), NodeK(FPOUT), NodeK(NPtr), NodeK(DummyVProp)
+};
+
+void fea_nodeType(SVFGNode * node, dictTy& dict) {
+    dict["node_type"] = nodeType2Str[SVFGNode::VFGNodeK(node->getNodeKind())];
+}
+
+#define NodeTy(x) SVF::x* ptr = SVFUtil::dyn_cast<SVF::x>(node)
 void dump_nodes_features(SVFG* svfg){
     for(SVF::u32_t i = 0; i < svfg->getSVFGNodeNum(); i++){
         SVFGNode * node = svfg->getSVFGNode(i);
-        auto dict = get_loc_dict(node);
+        dictTy  dict;
+        fea_loc(node, dict);
+        fea_nodeType(node, dict);
+        //node->getNodeKind()
+        //std::cout << svfg->getLHSTopLevPtr(node)->getValueName() << std::endl;
+//        if (NodeTy(ArgumentVFGNode))
+//        {
+//            ptr->toString();
+//        }
+//        else if (NodeTy(BinaryOPVFGNode))
+//        {
+//            ptr->toString();
+//        }
+//        else if (NodeTy(BranchVFGNode))
+//        {
+//            ptr->toString();
+//        }
+//        else if (NodeTy(CmpVFGNode))
+//        {
+//            ptr->toString();
+//        }
+//        else if (NodeTy(CmpVFGNode))
+//        {
+//            ptr->toString();
+//        }
+//        else if (NodeTy(MRSVFGNode))
+//        {
+//            ptr->toString();
+//        }
+//        else if (NodeTy(NullPtrVFGNode))
+//        {
+//            ptr->toString();
+//        }
+//        else if (NodeTy(PHIVFGNode))
+//        {
+//            ptr->toString();
+//        }
+//        else if (NodeTy(StmtVFGNode))
+//        {
+//            ptr->toString();
+//        }
+//        else if (NodeTy(UnaryOPVFGNode))
+//        {
+//            ptr->toString();
+//        }
+//        else{
+//            assert("out of type!");
+//        }
         printf("%s\n", dict2str(dict).c_str());
     }
 }

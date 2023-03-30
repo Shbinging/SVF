@@ -134,7 +134,7 @@ void traverseOnVFG(const SVFG* vfg, SVFValue* val)
     {
         // const VFGNode* node = *it;
         /// can only query VFGNode involving top-level pointers (starting with % or @ in LLVM IR)
-        /// PAGNode* pNode = vfg->getLHSTopLevPtr(node);
+        PAGNode* pNode = vfg->getLHSTopLevPtr(node);
         /// SVFValue* val = pNode->getValue();
     }
 }
