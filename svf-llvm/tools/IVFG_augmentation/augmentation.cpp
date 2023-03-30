@@ -8,11 +8,13 @@
 using namespace std;
 using namespace SVF;
 
-//void dump_nodes_features(SVFG* svfg){
-//    VFG
-//    for(int i = 0; i < svfg->getDefSVFGNode())
-//
-//}
+void dump_nodes_features(SVFG* svfg){
+    for(int i = 0; i < svfg->getSVFGNodeNum(); i++){
+        SVFGNode * node = svfg->getSVFGNode(i);
+    }
+}
+
+
 int main(int argc, char ** argv)
 {
 
@@ -36,8 +38,6 @@ int main(int argc, char ** argv)
     /// Create Andersen's pointer analysis
     Andersen* ander = AndersenWaveDiff::createAndersenWaveDiff(pag);
 
-    VFG* vfg = new VFG(ander->getPTACallGraph());
-    vfg->dump("/home/shuibing/ptCode2vec/SVFRemote/cmake-build-debug/bin/haha");
     /// Sparse value-flow graph (SVFG)
 
     SVFGBuilder svfBuilder(true);
