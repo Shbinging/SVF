@@ -979,7 +979,7 @@ struct DOTGraphTraits<SVFG*> : public DOTGraphTraits<SVFIR*>
         //mangleName
         if (Options::MangleName())
         {
-            std::regex regex_pattern("_ZN[a-zA-Z0-9.$_]+E");
+            std::regex regex_pattern("_ZN[a-zA-Z0-9.$_]+");
             for (auto& it : dict)
             {
                 trim(it.second);
