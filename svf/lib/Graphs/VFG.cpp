@@ -1218,8 +1218,11 @@ struct DOTGraphTraits<VFG*> : public DOTGraphTraits<SVFIR*>
         {
             rawstr << mr->toString();
         }
-        else
+        else if (BranchVFGNode* br = SVFUtil::dyn_cast<BranchVFGNode>(node)){
+            rawstr << br->toString();
+        }else{
             assert(false && "what else kinds of nodes do we have??");
+        }
 
         return rawstr.str();
     }
@@ -1302,8 +1305,13 @@ struct DOTGraphTraits<VFG*> : public DOTGraphTraits<SVFIR*>
         {
             rawstr <<  "color=orange,penwidth=2";
         }
-        else
+        else if (SVFUtil::isa<BranchVFGNode>(node))
+        {
+            rawstr <<  "color=gold,penwidth=2";
+        }
+        else{
             assert(false && "no such kind of node!!");
+        }
 
         rawstr <<  "";
 
