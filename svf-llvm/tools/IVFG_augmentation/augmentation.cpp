@@ -168,15 +168,18 @@ void dump_nodes_features(SVFG* svfg){
             dict["dest_type"] = "";
             dict["inst_full"] = "";
             if (LVar == nullptr){
-                //FIXME::current if LVar is nullptr, then SVFGNode is StoreSVFGNode, or LoadSVFGNode(?) about call @f
+                //FIXME::current if LVar is nullptr, then SVFGNode is StoreSVFGNode, or LoadSVFGNode(?) about call @f , value is SVFConstant...
                 dict["inst_full"] = node->getValue()->toString();
             }else if (!var_has_val(LVar)){
                 //FIXME::currnet this means LVar is DummyObjectVar or DummyTopLevelVar such as @llvm.memcpy, null ...
-                dict["dest_name"] = node->getValue()->getName();
-                //they don't have type
-                dict["dest_type"] = "";
-                dict["inst_full"] = node->getValue()->toString();
-                cout << dict2str(dict) << "\n";
+                if (node->getValue())
+                {
+                    dict["dest_name"] = node->getValue()->getName();
+                    // they don't have type
+                    dict["dest_type"] = "";
+                    dict["inst_full"] = node->getValue()->toString();
+                }
+                dict2str(dict);
             }else
             {
                 dict["dest_name"] = LVar->getValueName();
@@ -203,7 +206,9 @@ void dump_nodes_features(SVFG* svfg){
             }
             else
             {
-                dict["inst_full"] = node->getValue()->toString();
+                if (node->getValue()){
+                    dict["inst_full"] = node->getValue()->toString();
+                }
             }
         }
         if (is_mr_instructions)
