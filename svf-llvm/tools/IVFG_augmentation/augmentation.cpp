@@ -1,11 +1,12 @@
-#include "SVF-LLVM/LLVMUtil.h"
 #include "Graphs/SVFG.h"
-#include "WPA/Andersen.h"
+#include "SVF-LLVM/LLVMUtil.h"
 #include "SVF-LLVM/SVFIRBuilder.h"
+#include "SVFIR/SymbolTableInfo.h"
 #include "Util/CommandLine.h"
 #include "Util/Options.h"
-#include "SVFIR/SymbolTableInfo.h"
-#include<stdio.h>
+#include "WPA/Andersen.h"
+#include "rustc_demangle.h"
+#include <stdio.h>
 
 using namespace std;
 using namespace SVF;
