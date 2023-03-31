@@ -4,6 +4,7 @@
 #include "SVF-LLVM/SVFIRBuilder.h"
 #include "Util/CommandLine.h"
 #include "Util/Options.h"
+#include "SVFIR/SymbolTableInfo.h"
 #include<stdio.h>
 
 using namespace std;
@@ -53,6 +54,7 @@ static std::string dict2str(std::map<std::string, std::string> dict){
     rawstr << "}";
     return rawstr.str();
 }
+
 typedef std::map<std::string, std::string> dictTy;
 void fea_loc(SVFGNode* node, dictTy& dict){
     if (node->getICFGNode()->getFun() == nullptr){
@@ -85,27 +87,6 @@ void fea_nodeType(SVFGNode* node, dictTy& dict)
 {
     dict["node_type"] = nodeType2Str[SVFGNode::VFGNodeK(node->getNodeKind())];
 }
-// typedef SVFVar::PNODEK vpd;
-// void fea_instFull(SVFG* svfg, SVFGNode * node, dictTy& dict){
-//     const SVFVar* var = svfg->getLHSTopLevPtr(node);
-//     if(var && var->hasValue()){
-//         if (var->getNodeKind() != vpd::DummyValNode && var->getNodeKind() !=
-//         vpd::DummyObjNode){
-//             dict["inst_full"] = var->getValue()->toString();
-//         }
-//     }
-////    switch(var->getNodeKind()){
-////    case vpd::DummyValNode:
-////    case vpd::DummyObjNode:
-////    }
-////    if (var->getNodeKind() == SVFVar::PNODEK::DummyValNode || var)
-////    if (MRSVFGNode::classof(node) || BranchVFGNode::classof(node) ||
-///NullPtrVFGNode::classof(node) || UnaryOPVFGNode::classof(node)){
-////
-////    }else{
-////
-////    }
-//}
 
 const PAGNode* getLHSTopLevPtr(const VFGNode* node)
 {
@@ -148,7 +129,26 @@ const PAGNode* getLHSTopLevPtr(const VFGNode* node)
         return branch->getBranchStmt()->getBranchInst();
     return nullptr;
 }
-#define NodeTy(x) SVF::x* ptr = SVFUtil::dyn_cast<SVF::x>(node)
+
+bool var_has_val(const SVFVar* var)
+{
+    assert(var != nullptr);
+    if (var->getNodeKind() == SVFVar::PNODEK::DummyObjNode || var->getNodeKind() == SVFVar::PNODEK::DummyObjNode){
+        return false;
+    }
+    if (SymbolTableInfo::isBlkObj(var->getId())){
+        return false;
+        assert(0);
+    }
+    if (SymbolTableInfo::isConstantObj(var->getId())){
+        return false;
+        assert(0);
+    }
+    return var->hasValue();
+}
+
+#define NodeTy(x, y) SVF::x* ptr = SVFUtil::dyn_cast<SVF::x>(y)
+#define Is(x, y) (x::classof(y))
 void dump_nodes_features(SVFG* svfg){
     for(SVF::u32_t i = 0; i < svfg->getSVFGNodeNum(); i++)
     {
@@ -156,70 +156,82 @@ void dump_nodes_features(SVFG* svfg){
         dictTy dict;
         fea_loc(node, dict);
         fea_nodeType(node, dict);
-        // fea_instFull(svfg, node, dict);
-        // node->getNodeKind()
-        // std::cout << svfg->getLHSTopLevPtr(node)->getValueName() <<
-        // std::endl;
-        if (NodeTy(ArgumentVFGNode))
-        {
-            dict["inst_full"] = ptr->getValue()->toString();
-        }
-        else if (NodeTy(BinaryOPVFGNode))
-        {
-            ptr->toString();
-            dict["inst_full"] = ptr->getRes()->getValue()->toString();
-            const llvm::Value* val =
-                LLVMModuleSet::getLLVMModuleSet()->getLLVMValue(
-                    ptr->getRes()->getValue());
-            const llvm::Instruction* ins = llvm::cast<llvm::Instruction>(val);
-            dict["inst_name"] = std::string(ins->getOpcodeName());
-            dict["dest_name"] = ptr->getRes()->getValueName();
-            dict["dest_type"] =
-                ptr->getRes()->getValue()->getType()->toString();
-        }
-        else if (NodeTy(BranchVFGNode))
-        {
-            ptr->toString();
-        }
-        else if (NodeTy(CmpVFGNode))
-        {
-            dict["inst_full"] = ptr->getRes()->getValue()->toString();
-            const llvm::Value* val =
-                LLVMModuleSet::getLLVMModuleSet()->getLLVMValue(
-                    ptr->getRes()->getValue());
-            const llvm::Instruction* ins = llvm::cast<llvm::Instruction>(val);
-            dict["inst_name"] = std::string(ins->getOpcodeName());
-        }
-        else if (NodeTy(MRSVFGNode))
-        {
-            ptr->toString();
-            const MRVer* mr;
-            if (NodeTy(MSSAPHISVFGNode))
+        bool is_triple_instructions = Is(BinaryOPVFGNode, node) || Is(CmpVFGNode, node) || Is(PHIVFGNode, node) || Is(StmtVFGNode, node) || Is(UnaryOPVFGNode, node);
+        bool is_mr_instructions = Is(MRSVFGNode, node);
+        bool is_arg_instructions = Is(ArgumentVFGNode, node);
+        bool is_top_phi_instructions = Is(PHIVFGNode, node);
+        //bool is_mem_phi_instructions = Is(MSSAPHISVFGNode, node);
+        //bool is_other_instructions = Is(BranchVFGNode, node) || Is(NullPtrVFGNode, node) || Is(DummyVersionPropSVFGNode, node);
+        if (is_triple_instructions){
+            const SVFVar* LVar = getLHSTopLevPtr(node);
+            dict["dest_name"] = "";
+            dict["dest_type"] = "";
+            dict["inst_full"] = "";
+            if (LVar == nullptr){
+                //FIXME::current if LVar is nullptr, then SVFGNode is StoreSVFGNode, or LoadSVFGNode(?) about call @f
+                dict["inst_full"] = node->getValue()->toString();
+            }else if (!var_has_val(LVar)){
+                //FIXME::currnet this means LVar is DummyObjectVar or DummyTopLevelVar such as @llvm.memcpy, null ...
+                dict["dest_name"] = node->getValue()->getName();
+                //they don't have type
+                dict["dest_type"] = "";
+                dict["inst_full"] = node->getValue()->toString();
+                cout << dict2str(dict) << "\n";
+            }else
             {
-                // FIXME::In ALL PHI Node we need to count about opverNum and
-                // info about dest
+                dict["dest_name"] = LVar->getValueName();
+                // FIXME::SVF has bug when using LVar->getType
+                dict["dest_type"] = node->getValue()->getType()->toString();
+                dict["inst_full"] = LVar->getValue()->toString();
+                const Value* val = LLVMModuleSet::getLLVMModuleSet()->getLLVMValue(LVar->getValue());
+                const Instruction* ins = llvm::dyn_cast<Instruction>(val);
+                if (ins){
+                    dict["inst_op"] = ins->getOpcodeName();
+                }
+            }
+        }
+        if (is_arg_instructions || is_top_phi_instructions)
+        {
+            const SVFVar* LVar = getLHSTopLevPtr(node);
+            assert(LVar != nullptr);
+            if (var_has_val(LVar))
+            {
+                dict["dest_name"] = LVar->getValueName();
+                // FIXME::SVF has bug if use LVar->getType()->toString();
+                dict["dest_type"] = node->getValue()->getType()->toString();
+                dict["inst_full"] = LVar->getValue()->toString();
+            }
+            else
+            {
+                dict["inst_full"] = node->getValue()->toString();
+            }
+        }
+        if (is_mr_instructions)
+        {
+            dict["mr_id"] = "";
+            dict["mr_size"] = "";
+            dict["mr_version"] = "";
+            const MRVer* mr;
+            if (NodeTy(MSSAPHISVFGNode, node))
+            {
                 dict["branch_num"] = std::to_string(ptr->getOpVerNum());
                 mr = ptr->getResVer();
             }
             else
             {
-                if (NodeTy(ActualINSVFGNode))
-                {
-                    mr = ptr->getMRVer();
-                    // dict["callsite_full"] =
-                    // ptr->getCallSite()->getCallSite()->toString();
-                }
-                if (NodeTy(ActualOUTSVFGNode))
-                {
-                    mr = ptr->getMRVer();
-                    // dict["callsite_full"] =
-                    // ptr->getCallSite()->getCallSite()->toString();
-                }
-                if (NodeTy(FormalINSVFGNode))
+                if (NodeTy(ActualINSVFGNode, node))
                 {
                     mr = ptr->getMRVer();
                 }
-                if (NodeTy(FormalOUTSVFGNode))
+                if (NodeTy(ActualOUTSVFGNode, node))
+                {
+                    mr = ptr->getMRVer();
+                }
+                if (NodeTy(FormalINSVFGNode, node))
+                {
+                    mr = ptr->getMRVer();
+                }
+                if (NodeTy(FormalOUTSVFGNode, node))
                 {
                     mr = ptr->getMRVer();
                 }
@@ -228,62 +240,114 @@ void dump_nodes_features(SVFG* svfg){
             dict["mr_version"] = std::to_string(mr->getSSAVersion());
             dict["mr_size"] = std::to_string(mr->getMR()->getRegionSize());
         }
-        else if (NodeTy(NullPtrVFGNode))
-        {
-            ptr->toString();
-        }
-        else if (NodeTy(PHIVFGNode))
-        {
+        if (NodeTy(PHIVFGNode, node)){
             dict["branch_num"] = std::to_string(ptr->getOpVerNum());
-            dict["inst_full"] = ptr->getRes()->getValue()->toString();
-            dict["dest_name"] = ptr->getRes()->getValueName();
-            dict["dest_type"] = ptr->getRes()->getType()->toString();
-        }
-        else if (NodeTy(StmtVFGNode))
-        {
-            dict["dest_name"] = ptr->getPAGDstNode()->getValueName();
-            const AssignStmt* stmt = (AssignStmt*)ptr->getPAGEdge();
-            if (stmt->)
-            {
-                dict["dest_type"] = stmt->getLHSVar()->getType()->toString();
-            }
-            else
-            {
-                dict["dest_type"] = "";
-            }
-            //            if (ptr->getPAGDstNode()->getType() == nullptr){
-            //                dict["dest_type"] = "NULL";
-            //            }else
-            //            {
-            //                dict["dest_type"] =
-            //                ptr->getPAGDstNode()->getType()->toString();
-            //            }
-            //            if (ptr->getInst() == nullptr){
-            //                dict["inst_full"] = "";
-            //            }else{
-            //                dict["inst_full"] = ptr->getInst()->toString();
-            ////                const llvm::Value* val =
-            ///LLVMModuleSet::getLLVMModuleSet()->getLLVMValue(ptr->getInst());
-            ////                const llvm::Instruction* ins =
-            ///llvm::dyn_cast<llvm::Instruction>(val); /                if (ins
-            ///== nullptr){ /                    dict["inst_name"] = ""; /
-            ///}else{ /                    dict["inst_name"] =
-            ///std::string(ins->getOpcodeName()); /                }
-            //};
-            // ptr->getInst()
-            // dict["inst_full"] = ptr->getPAGDstNode()->getValue()->toString();
-            printf("%s\n", dict2str(dict).c_str());
-        }
-        else if (NodeTy(UnaryOPVFGNode))
-        {
-            ptr->toString();
-        }
-        else
-        {
-            assert("out of type!");
         }
     }
 }
+//        else if (NodeTy(BinaryOPVFGNode))
+//        {
+//            ptr->toString();
+//            dict["inst_full"] = ptr->getRes()->getValue()->toString();
+//            const llvm::Value* val =
+//                LLVMModuleSet::getLLVMModuleSet()->getLLVMValue(
+//                    ptr->getRes()->getValue());
+//            const llvm::Instruction* ins = llvm::cast<llvm::Instruction>(val);
+//            dict["inst_name"] = std::string(ins->getOpcodeName());
+//            dict["dest_name"] = ptr->getRes()->getValueName();
+//            dict["dest_type"] =
+//                ptr->getRes()->getValue()->getType()->toString();
+//        }
+//        else if (NodeTy(BranchVFGNode))
+//        {
+//            ptr->toString();
+//        }
+//        else if (NodeTy(CmpVFGNode))
+//        {
+//            dict["inst_full"] = ptr->getRes()->getValue()->toString();
+//            const llvm::Value* val =
+//                LLVMModuleSet::getLLVMModuleSet()->getLLVMValue(
+//                    ptr->getRes()->getValue());
+//            const llvm::Instruction* ins = llvm::cast<llvm::Instruction>(val);
+//            dict["inst_name"] = std::string(ins->getOpcodeName());
+//        }
+//        else if (NodeTy(MRSVFGNode))
+//        {
+//            ptr->toString();
+//            const MRVer* mr;
+//            if (NodeTy(MSSAPHISVFGNode))
+//            {
+//                // FIXME::In ALL PHI Node we need to count about opverNum and
+//                // info about dest
+//                dict["branch_num"] = std::to_string(ptr->getOpVerNum());
+//                mr = ptr->getResVer();
+//            }
+//            else
+//            {
+//                if (NodeTy(ActualINSVFGNode))
+//                {
+//                    mr = ptr->getMRVer();
+//                    // dict["callsite_full"] =
+//                    // ptr->getCallSite()->getCallSite()->toString();
+//                }
+//                if (NodeTy(ActualOUTSVFGNode))
+//                {
+//                    mr = ptr->getMRVer();
+//                    // dict["callsite_full"] =
+//                    // ptr->getCallSite()->getCallSite()->toString();
+//                }
+//                if (NodeTy(FormalINSVFGNode))
+//                {
+//                    mr = ptr->getMRVer();
+//                }
+//                if (NodeTy(FormalOUTSVFGNode))
+//                {
+//                    mr = ptr->getMRVer();
+//                }
+//            }
+//            dict["mr_id"] = std::to_string(mr->getID());
+//            dict["mr_version"] = std::to_string(mr->getSSAVersion());
+//            dict["mr_size"] = std::to_string(mr->getMR()->getRegionSize());
+//        }
+//        else if (NodeTy(NullPtrVFGNode))
+//        {
+//            ptr->toString();
+//        }
+//        else if (NodeTy(PHIVFGNode))
+//        {
+//            dict["branch_num"] = std::to_string(ptr->getOpVerNum());
+//            dict["inst_full"] = ptr->getRes()->getValue()->toString();
+//            dict["dest_name"] = ptr->getRes()->getValueName();
+//            dict["dest_type"] = ptr->getRes()->getType()->toString();
+//        }
+//        else if (NodeTy(StmtVFGNode))
+//        {
+//                ptr->toString();
+////            dict["dest_name"] = "";
+////            dict["dest_type"] = "";
+////            dict["dest_name"] = ptr->getPAGDstNode()->getValueName();
+////            const AssignStmt* stmt = (AssignStmt*)ptr->getPAGEdge();
+////            if (stmt->)
+////            {
+////                dict["dest_type"] = stmt->getLHSVar()->getType()->toString();
+////            }
+////            else
+////            {
+////                dict["dest_type"] = "";
+////            }
+//
+//
+//        }
+//        else if (NodeTy(UnaryOPVFGNode))
+//        {
+//            ptr->toString();
+//        }
+//        else
+//        {
+//            assert("out of type!");
+//        }
+
+
 
 
 int main(int argc, char ** argv)
