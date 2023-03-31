@@ -260,6 +260,12 @@ public:
     // Loop Analysis
     static const Option<bool> LoopAnalysis;
     static const Option<u32_t> LoopBound;
+
+    // ivfg_augmentation
+    static const Option<bool> demangleRust;
+    static const Option<bool> demangleCPP;
+    static const Option<std::string> featurePath;
+    static const Option<std::string> graphPath;
 };
 }  // namespace SVF
 

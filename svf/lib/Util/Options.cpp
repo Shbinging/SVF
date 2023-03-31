@@ -840,5 +840,26 @@ const Option<u32_t> Options::LoopBound(
     "Maximum number of loop",
     1
 );
+const Option<bool> Options::demangleRust(
+        "demangle-rust",
+        "demangle rust function name",
+        false
+    );
+ const Option<bool> Options::demangleCPP(
+    "demangle-cpp",
+    "demangle cpp function name",
+    false
+    );
 
+ const Option<std::string> Options::featurePath(
+    "feature-path",
+    "feature path",
+    "feature.txt"
+    );
+
+const Option<std::string> Options::graphPath(
+        "graph-path",
+        "graph path no suffix",
+    "ivfg"
+        );
 } // namespace SVF.

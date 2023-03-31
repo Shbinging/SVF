@@ -7,9 +7,12 @@
 #include "WPA/Andersen.h"
 #include "rustc_demangle.h"
 #include <stdio.h>
+#include <regex>
+#include <cxxabi.h>
 
 using namespace std;
 using namespace SVF;
+typedef std::map<std::string, std::string> dictTy;
 
 static inline void ltrim(std::string &s) {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
@@ -39,13 +42,68 @@ void replaceAll(std::string& str, const std::string& from, const std::string& to
         start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
     }
 }
+std::string rustDemangle(std::string oriName){
+    char st[300];
+    int res = rustc_demangle(oriName.c_str(), st, 300);
+    return std::string(st);
+    assert(res);
+}
 
+void demangleRustName(dictTy& dict){
+    std::regex regex_pattern("_ZN[a-zA-Z0-9.$_]+");
+    for (auto& it : dict)
+    {
+        trim(it.second);
+        std::string old_target, new_target;
+        old_target = it.second;
+        std::sregex_iterator sr_it(old_target.begin(), old_target.end(),
+                                   regex_pattern);
+        std::sregex_iterator end;
+        while (sr_it != end)
+        {
+            std::string catch_str = (*sr_it)[0];
+            replaceAll(it.second, catch_str, rustDemangle(catch_str));
+            sr_it++;
+        }
+    }
+}
+
+void demangleCPPName(dictTy& dict){
+    std::regex regex_pattern("_Z[a-zA-Z0-9.$_]+");
+    for (auto& it : dict)
+    {
+        std::string old_target, new_target;
+        old_target = it.second;
+        std::sregex_iterator sr_it(old_target.begin(), old_target.end(),
+                                   regex_pattern);
+        std::sregex_iterator end;
+        while (sr_it != end)
+        {
+            std::string catch_str = (*sr_it)[0];
+            sr_it++;
+            s32_t status;
+            char* realname = abi::__cxa_demangle(catch_str.c_str(), 0, 0, &status);
+            if (realname == nullptr){
+                continue;
+            }
+            assert(realname != nullptr);
+            std::string  realname_str(realname);
+            replaceAll(it.second, catch_str, realname_str);
+        }
+    }
+}
 
 static std::string dict2str(std::map<std::string, std::string> dict){
     std::string str;
     std::stringstream  rawstr(str);
     for(auto &it: dict){
         trim(it.second);
+    }
+    if (Options::demangleRust()){
+        demangleRustName(dict);
+    }
+    if (Options::demangleCPP()){
+        demangleCPPName(dict);
     }
     //print
     rawstr << "node_feature: {";
@@ -56,7 +114,7 @@ static std::string dict2str(std::map<std::string, std::string> dict){
     return rawstr.str();
 }
 
-typedef std::map<std::string, std::string> dictTy;
+
 void fea_loc(SVFGNode* node, dictTy& dict){
     if (node->getICFGNode()->getFun() == nullptr){
         dict["func_name"] = "GLOBAL";
@@ -150,7 +208,9 @@ bool var_has_val(const SVFVar* var)
 
 #define NodeTy(x, y) SVF::x* ptr = SVFUtil::dyn_cast<SVF::x>(y)
 #define Is(x, y) (x::classof(y))
-void dump_nodes_features(SVFG* svfg){
+void dump_nodes_features(SVFG* svfg, std::string featruePath){
+    std::ofstream fout;
+    fout.open(featruePath.c_str(), std::ios::out | std::ios::trunc);
     for(SVF::u32_t i = 0; i < svfg->getSVFGNodeNum(); i++)
     {
         SVFGNode* node = svfg->getSVFGNode(i);
@@ -249,7 +309,10 @@ void dump_nodes_features(SVFG* svfg){
         if (NodeTy(PHIVFGNode, node)){
             dict["branch_num"] = std::to_string(ptr->getOpVerNum());
         }
+        fout << "Node" << static_cast<const void*>(node) << "\t";
+        fout << dict2str(dict) << "\n";
     }
+    fout.close();
 }
 
 int main(int argc, char ** argv)
@@ -278,9 +341,9 @@ int main(int argc, char ** argv)
 
     SVFGBuilder svfBuilder(true);
     SVFG* svfg = svfBuilder.buildFullSVFG(ander);
-
+    svfg->dump(Options::graphPath());
     ///dump node features
-    dump_nodes_features(svfg);
+    dump_nodes_features(svfg, Options::featurePath());
 
     AndersenWaveDiff::releaseAndersenWaveDiff();
     SVFIR::releaseSVFIR();
