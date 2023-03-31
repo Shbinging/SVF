@@ -1038,8 +1038,12 @@ const PAGNode* VFG::getLHSTopLevPtr(const VFGNode* node) const
         return ar->getRev();
     else if(const FormalRetVFGNode* fr = SVFUtil::dyn_cast<FormalRetVFGNode>(node))
         return fr->getRet();
-    else if(const NullPtrVFGNode* nullVFG = SVFUtil::dyn_cast<NullPtrVFGNode>(node))
+    else if (const NullPtrVFGNode* nullVFG =
+                 SVFUtil::dyn_cast<NullPtrVFGNode>(node))
         return nullVFG->getPAGNode();
+    else if (const BranchVFGNode* branch =
+                 SVFUtil::dyn_cast<BranchVFGNode>(node))
+        return branch->getBranchStmt()->getBranchInst();
     else
         assert(false && "unexpected node kind!");
     return nullptr;
