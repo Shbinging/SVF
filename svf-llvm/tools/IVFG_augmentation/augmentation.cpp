@@ -62,6 +62,7 @@ void demangleRustName(dictTy& dict){
         while (sr_it != end)
         {
             std::string catch_str = (*sr_it)[0];
+            replaceAll(catch_str, "_ret", "");
             replaceAll(it.second, catch_str, rustDemangle(catch_str));
             sr_it++;
         }
@@ -80,6 +81,7 @@ void demangleCPPName(dictTy& dict){
         while (sr_it != end)
         {
             std::string catch_str = (*sr_it)[0];
+            replaceAll(catch_str, "_ret", "");
             sr_it++;
             s32_t status;
             char* realname = abi::__cxa_demangle(catch_str.c_str(), 0, 0, &status);
@@ -199,25 +201,33 @@ bool var_has_val(const SVFVar* var)
         return false;
         assert(0);
     }
-    if (SymbolTableInfo::isConstantObj(var->getId())){
+    if (SymbolTableInfo::isConstantObj(var->getId()))
+    {
         return false;
         assert(0);
     }
     return var->hasValue();
 }
-
+typedef std::map<SVFGNode*, dictTy> node_dict_type;
 #define NodeTy(x, y) SVF::x* ptr = SVFUtil::dyn_cast<SVF::x>(y)
 #define Is(x, y) (x::classof(y))
-void dump_nodes_features(SVFG* svfg, std::string featruePath){
-    std::ofstream fout;
-    fout.open(featruePath.c_str(), std::ios::out | std::ios::trunc);
-    for(SVF::u32_t i = 0; i < svfg->getSVFGNodeNum(); i++)
+
+node_dict_type dump_nodes_features(SVFG* svfg, std::string featruePath)
+{
+    // std::ofstream fout;
+    // fout.open(featruePath.c_str(), std::ios::out | std::ios::trunc);
+    node_dict_type res;
+    for (SVF::u32_t i = 0; i < svfg->getSVFGNodeNum(); i++)
     {
         SVFGNode* node = svfg->getSVFGNode(i);
         dictTy dict;
         fea_loc(node, dict);
         fea_nodeType(node, dict);
-        bool is_triple_instructions = Is(BinaryOPVFGNode, node) || Is(CmpVFGNode, node) || Is(PHIVFGNode, node) || Is(StmtVFGNode, node) || Is(UnaryOPVFGNode, node);
+        dict["idx"] = std::to_string(i);
+        bool is_triple_instructions =
+            Is(BinaryOPVFGNode, node) || Is(CmpVFGNode, node) ||
+            Is(PHIVFGNode, node) || Is(StmtVFGNode, node) ||
+            Is(UnaryOPVFGNode, node);
         bool is_mr_instructions = Is(MRSVFGNode, node);
         bool is_arg_instructions = Is(ArgumentVFGNode, node);
         bool is_top_phi_instructions = Is(PHIVFGNode, node);
@@ -306,22 +316,26 @@ void dump_nodes_features(SVFG* svfg, std::string featruePath){
             dict["mr_version"] = std::to_string(mr->getSSAVersion());
             dict["mr_size"] = std::to_string(mr->getMR()->getRegionSize());
         }
-        if (NodeTy(PHIVFGNode, node)){
+        if (NodeTy(PHIVFGNode, node))
+        {
             dict["branch_num"] = std::to_string(ptr->getOpVerNum());
         }
-        fout << "Node" << static_cast<const void*>(node) << "\t";
-        fout << dict2str(dict) << "\n";
+        res[node] = dict;
+        //        fout << "Node" << static_cast<const void*>(node) << "\t";
+        //        fout << dict2str(dict) << "\n";
     }
-    fout.close();
+    // fout.close();
+    return res;
 }
 
-int main(int argc, char ** argv)
+void impl_var_name(SVFG* svfg) {}
+int main(int argc, char** argv)
 {
-    char **arg_value = new char*[argc];
+    char** arg_value = new char*[argc];
     std::vector<std::string> moduleNameVec;
-    moduleNameVec = OptionBase::parseOptions(
-        argc, argv, "Whole Program Points-to Analysis", "[options] <input-bitcode...>"
-    );
+    moduleNameVec =
+        OptionBase::parseOptions(argc, argv, "Whole Program Points-to Analysis",
+                                 "[options] <input-bitcode...>");
 
     if (Options::WriteAnder() == "ir_annotator")
     {
@@ -342,14 +356,19 @@ int main(int argc, char ** argv)
     SVFGBuilder svfBuilder(true);
     SVFG* svfg = svfBuilder.buildFullSVFG(ander);
     svfg->dump(Options::graphPath());
-    ///dump node features
-    dump_nodes_features(svfg, Options::featurePath());
+    /// dump node features
+    node_dict_type res = dump_nodes_features(svfg, Options::featurePath());
+    for (auto& it : res)
+    {
+        cout << dict2str(it.second) << "\n";
+    }
+
+    /// dump_edge_features(svfg, Options::featurePath());
 
     AndersenWaveDiff::releaseAndersenWaveDiff();
     SVFIR::releaseSVFIR();
 
     SVF::LLVMModuleSet::releaseLLVMModuleSet();
-
 
     llvm::llvm_shutdown();
     delete[] arg_value;
