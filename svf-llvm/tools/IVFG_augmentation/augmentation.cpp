@@ -385,7 +385,7 @@ void del_svfg_all_edges(SVFGNode* node, SVFG* svfg)
     }
     for (auto it : in)
     {
-        node->removeIncomingEdge(it);
+        svfg->removeSVFGEdge(it);
     }
     for (auto it = node->OutEdgeBegin(); it != node->OutEdgeEnd(); it++)
     {
@@ -393,7 +393,7 @@ void del_svfg_all_edges(SVFGNode* node, SVFG* svfg)
     }
     for (auto it : out)
     {
-        node->removeOutgoingEdge(it);
+        svfg->removeSVFGEdge(it);
     }
 }
 
