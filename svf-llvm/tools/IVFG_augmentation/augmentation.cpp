@@ -110,6 +110,8 @@ static std::string dict2str(std::map<std::string, std::string> dict){
     //print
     rawstr << "node_feature: {";
     for(auto& item: dict){
+        // if (item.first != "inst_full" && item.first != "var_name" &&
+        // item.first != "idx") continue;
         rawstr << "\'" << item.first << "\'" << " : " << "\'" << item.second << "\', ";
     }
     rawstr << "}";
@@ -146,6 +148,7 @@ std::map<SVFGNode::VFGNodeK, std::string> nodeType2Str = {
 
 void fea_nodeType(SVFGNode* node, dictTy& dict)
 {
+    // FIXME::type maybe wrong
     dict["node_type"] = nodeType2Str[SVFGNode::VFGNodeK(node->getNodeKind())];
 }
 
@@ -188,6 +191,11 @@ const PAGNode* getLHSTopLevPtr(const VFGNode* node)
     else if (const BranchVFGNode* branch =
                  SVFUtil::dyn_cast<BranchVFGNode>(node))
         return branch->getBranchStmt()->getBranchInst();
+    // FIXME::whther store can use DestNode?
+    else if (const StoreVFGNode* store = SVFUtil::dyn_cast<StoreVFGNode>(node))
+    {
+        return store->getPAGDstNode();
+    }
     return nullptr;
 }
 
@@ -212,7 +220,7 @@ typedef std::map<SVFGNode*, dictTy> node_dict_type;
 #define NodeTy(x, y) SVF::x* ptr = SVFUtil::dyn_cast<SVF::x>(y)
 #define Is(x, y) (x::classof(y))
 
-node_dict_type dump_nodes_features(SVFG* svfg, std::string featruePath)
+node_dict_type get_nodes_features(SVFG* svfg, std::string featruePath)
 {
     // std::ofstream fout;
     // fout.open(featruePath.c_str(), std::ios::out | std::ios::trunc);
@@ -328,7 +336,85 @@ node_dict_type dump_nodes_features(SVFG* svfg, std::string featruePath)
     return res;
 }
 
-void impl_var_name(SVFG* svfg) {}
+void dump_nodes_feature(node_dict_type& dict, std::string feature_path)
+{
+    std::ofstream fout;
+    fout.open(feature_path.c_str(), std::ios::out | std::ios::trunc);
+    for (auto& it : dict)
+    {
+        fout << "Node" << static_cast<const void*>(it.first) << "\t";
+        fout << dict2str(it.second) << "\n";
+    }
+    fout.close();
+}
+void dfs_var_name(SVFGNode* node, node_dict_type& dict,
+                  unordered_map<SVF::u32_t, int>& visited, std::string var_name)
+{
+    if (node == nullptr || visited.count(node->getId()))
+    {
+        return;
+    }
+    auto& node_dict = dict[node];
+    if (node_dict.count("dest_name") && node_dict["dest_name"] != "")
+    {
+        var_name = node_dict["dest_name"];
+    }
+    if (var_name != "")
+    {
+        node_dict["var_name"] = var_name;
+        visited[node->getId()] = 1;
+        for (auto it = node->getOutEdges().begin();
+             it != node->getOutEdges().end(); it++)
+        {
+            if ((*it)->isDirectVFGEdge())
+            {
+                dfs_var_name((*it)->getDstNode(), dict, visited, var_name);
+            }
+        }
+    }
+}
+
+void del_svfg_all_edges(SVFGNode* node, SVFG* svfg)
+{
+    std::vector<SVF::GenericNode<SVF::VFGNode, SVF::VFGEdge>::EdgeType*> in,
+        out;
+    for (auto it = node->getInEdges().begin(); it != node->getInEdges().end();
+         it++)
+    {
+        in.push_back(*it);
+    }
+    for (auto it : in)
+    {
+        node->removeIncomingEdge(it);
+    }
+    for (auto it = node->OutEdgeBegin(); it != node->OutEdgeEnd(); it++)
+    {
+        out.push_back(*it);
+    }
+    for (auto it : out)
+    {
+        node->removeOutgoingEdge(it);
+    }
+}
+
+void impl_var_name(SVFG* svfg, node_dict_type& dict)
+{
+    unordered_map<SVF::u32_t, int> visited;
+    for (SVF::u32_t i = 0; i < svfg->nodeNum; i++)
+    {
+        SVFGNode* node = svfg->getSVFGNode(i);
+        dfs_var_name(node, dict, visited, "");
+    }
+    for (auto& it : dict)
+    {
+        if (!it.second.count("var_name"))
+        {
+            del_svfg_all_edges(it.first, svfg);
+            svfg->removeSVFGNode(it.first);
+        }
+    }
+}
+
 int main(int argc, char** argv)
 {
     char** arg_value = new char*[argc];
@@ -355,13 +441,15 @@ int main(int argc, char** argv)
 
     SVFGBuilder svfBuilder(true);
     SVFG* svfg = svfBuilder.buildFullSVFG(ander);
-    svfg->dump(Options::graphPath());
     /// dump node features
-    node_dict_type res = dump_nodes_features(svfg, Options::featurePath());
-    for (auto& it : res)
-    {
-        cout << dict2str(it.second) << "\n";
-    }
+
+    node_dict_type res = get_nodes_features(svfg, Options::featurePath());
+
+    impl_var_name(svfg, res);
+
+    dump_nodes_feature(res, Options::featurePath());
+
+    svfg->dump(Options::graphPath());
 
     /// dump_edge_features(svfg, Options::featurePath());
 
