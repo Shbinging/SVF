@@ -857,9 +857,9 @@ const Option<bool> Options::demangleRust(
     "feature.txt"
     );
 
-const Option<std::string> Options::graphPath(
-        "graph-path",
-        "graph path no suffix",
-    "ivfg"
-        );
-} // namespace SVF.
+ const Option<std::string> Options::graphPath("graph-path",
+                                              "graph path no suffix", "ivfg");
+ const Option<bool> Options::flow2vec(
+     "flow2vec", "gen flow2vec dataset just as flow2vec, include impl_var_name",
+     false);
+ } // namespace SVF.

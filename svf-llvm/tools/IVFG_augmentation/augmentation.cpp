@@ -347,6 +347,7 @@ void dump_nodes_feature(node_dict_type& dict, std::string feature_path)
     }
     fout.close();
 }
+
 void dfs_var_name(SVFGNode* node, node_dict_type& dict,
                   unordered_map<SVF::u32_t, int>& visited, std::string var_name)
 {
@@ -445,11 +446,12 @@ int main(int argc, char** argv)
 
     node_dict_type res = get_nodes_features(svfg, Options::featurePath());
 
-    impl_var_name(svfg, res);
+    if (Options::flow2vec())
+    {
+        impl_var_name(svfg, res);
+    }
 
     dump_nodes_feature(res, Options::featurePath());
-
-    svfg->dump(Options::graphPath());
 
     /// dump_edge_features(svfg, Options::featurePath());
 

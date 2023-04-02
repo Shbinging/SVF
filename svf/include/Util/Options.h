@@ -266,6 +266,7 @@ public:
     static const Option<bool> demangleCPP;
     static const Option<std::string> featurePath;
     static const Option<std::string> graphPath;
+    static const Option<bool> flow2vec;
 };
 }  // namespace SVF
 
