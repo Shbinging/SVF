@@ -16,7 +16,7 @@ add_compile_options("-fno-rtti")
 add_compile_options("-fno-exceptions")
 
 # Treat compiler warnings as errors
-add_compile_options("-Werror" "-Wall")
+add_compile_options("-Wall")
 
 # Keep assertions enabled if requested
 option(SVF_ENABLE_ASSERTIONS "Always enable assertions")

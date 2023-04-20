@@ -325,6 +325,10 @@ public:
     /// Remove a VFGNode
     inline void removeVFGNode(VFGNode* node)
     {
+        if (hasVFGNodes(node->getFun()))
+        {
+            funToVFGNodesMap.find(node->getFun())->second.erase(node);
+        }
         removeGNode(node);
     }
 

@@ -112,7 +112,7 @@ static std::string dict2str(std::map<std::string, std::string> dict){
     for(auto& item: dict){
         // if (item.first != "inst_full" && item.first != "var_name" &&
         // item.first != "idx") continue;
-        rawstr << "\'" << item.first << "\'" << " : " << "\'" << item.second << "\', ";
+        rawstr << "\"\"\"" << item.first << "\"\"\"" << " : " << "\"\"\"" << item.second << "\"\"\", ";
     }
     rawstr << "}";
     return rawstr.str();
@@ -416,6 +416,62 @@ void impl_var_name(SVFG* svfg, node_dict_type& dict)
     }
 }
 
+std::map<SVFGNode*, int> get_new_node_id(SVFG* svfg, const SVFFunction* fun){
+    std::map<SVFGNode*, int> node2id;
+    int s = 0;
+    for (auto it = svfg->getVFGNodeBegin(fun); it != svfg->getVFGNodeEnd(fun); it++){
+        SVFGNode* node = (*it);
+        node2id[node] = s++;
+    }
+    for (auto it = svfg->getVFGNodeBegin(fun); it != svfg->getVFGNodeEnd(fun); it++){
+        SVFGNode* node = (*it);
+        for(auto it = node->OutEdgeBegin(); it != node->OutEdgeEnd(); it++){
+            SVFGNode* node = (*it)->getDstNode();
+            if (node2id.find(node) == node2id.end()){
+                node2id[node] = s++;
+            }
+        }
+    }
+    return node2id;
+}
+
+void dump_graph(SVFG* svfg, const SVFFunction* fun, std::string graphPath, std::map<SVFGNode*, int>& node2id){
+    std::ofstream fout;
+    fout.open(graphPath.c_str(), std::ios::out | std::ios::trunc);
+    for (auto it = svfg->getVFGNodeBegin(fun); it != svfg->getVFGNodeEnd(fun); it++){
+        SVFGNode* node = (*it);
+        fout << std::to_string(node2id[node]);
+        for(auto it = node->OutEdgeBegin(); it != node->OutEdgeEnd(); it++){
+            SVFGNode* dst_node = (*it)->getDstNode();
+            fout << " " << std::to_string(node2id[dst_node]);
+        }
+        fout << "\n";
+    }
+    fout.close();
+}
+
+void dump_varname(std::string featurePath, std::map<SVFGNode*, int>& node2id, node_dict_type& dict){
+    std::ofstream fout;
+    fout.open(featurePath.c_str(), std::ios::out | std::ios::trunc);
+    for(auto it = node2id.begin(); it != node2id.end(); it++){
+        fout << std::to_string(it->second) << "," << dict[it->first]["var_name"] << "\n";
+    }
+    fout.close();
+}
+
+void generate_graph_dataset(SVFG* svfg, SVFModule* svfModule, node_dict_type& dict){
+    for(auto it = svfModule->getFunctionSet().begin(); it != svfModule->getFunctionSet().end(); it++){
+        const SVFFunction* func = (*it);
+        cout << func->getName() << endl;
+        if (!svfg->hasVFGNodes(func)) continue;
+        std::map<SVFGNode*, int> node2id = get_new_node_id(svfg, func);
+        //FIXME::cpp/rust need mangle name
+        dump_graph(svfg, func, Options::graphPath() + func->getName(), node2id);
+        dump_varname(Options::featurePath() + func->getName(), node2id, dict);
+    }
+}
+
+
 int main(int argc, char** argv)
 {
     char** arg_value = new char*[argc];
@@ -451,7 +507,10 @@ int main(int argc, char** argv)
         impl_var_name(svfg, res);
     }
 
-    dump_nodes_feature(res, Options::featurePath());
+    generate_graph_dataset(svfg, svfModule, res);
+    //dump_nodes_feature(res, Options::featurePath());
+    //dump_graph(svfg, Options::graphPath(), get_new_node_id(svfg));
+    //svfg->dump(Options::graphPath(), true);
 
     /// dump_edge_features(svfg, Options::featurePath());
 

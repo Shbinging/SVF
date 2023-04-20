@@ -36,108 +36,119 @@
 using namespace std;
 using namespace SVF;
 
-/*!
- * An example to query alias results of two LLVM values
- */
-SVF::AliasResult aliasQuery(PointerAnalysis* pta, SVFValue* v1, SVFValue* v2)
-{
-    return pta->alias(v1,v2);
-}
+///*!
+// * An example to query alias results of two LLVM values
+// */
+//SVF::AliasResult aliasQuery(PointerAnalysis* pta, SVFValue* v1, SVFValue* v2)
+//{
+//    return pta->alias(v1,v2);
+//}
+//
+///*!
+// * An example to print points-to set of an LLVM value
+// */
+//std::string printPts(PointerAnalysis* pta, SVFValue* val)
+//{
+//
+//    std::string str;
+//    std::stringstream rawstr(str);
+//
+//    NodeID pNodeId = pta->getPAG()->getValueNode(val);
+//    const PointsTo& pts = pta->getPts(pNodeId);
+//    for (PointsTo::iterator ii = pts.begin(), ie = pts.end();
+//            ii != ie; ii++)
+//    {
+//        rawstr << " " << *ii << " ";
+//        PAGNode* targetObj = pta->getPAG()->getGNode(*ii);
+//        if(targetObj->hasValue())
+//        {
+//            rawstr << "(" << targetObj->getValue()->toString() << ")\t ";
+//        }
+//    }
+//
+//    return rawstr.str();
+//
+//}
 
-/*!
- * An example to print points-to set of an LLVM value
- */
-std::string printPts(PointerAnalysis* pta, SVFValue* val)
-{
 
-    std::string str;
-    std::stringstream rawstr(str);
+///*!
+// * An example to query/collect all successor nodes from a ICFGNode (iNode) along control-flow graph (ICFG)
+// */
+//void traverseOnICFG(ICFG* icfg, const SVFInstruction* svfInst)
+//{
+//    ICFGNode* iNode = icfg->getICFGNode(svfInst);
+//    FIFOWorkList<const ICFGNode*> worklist;
+//    Set<const ICFGNode*> visited;
+//    worklist.push(iNode);
+//
+//    /// Traverse along VFG
+//    while (!worklist.empty())
+//    {
+//        const ICFGNode* vNode = worklist.pop();
+//        for (ICFGNode::const_iterator it = vNode->OutEdgeBegin(), eit =
+//                    vNode->OutEdgeEnd(); it != eit; ++it)
+//        {
+//            ICFGEdge* edge = *it;
+//            ICFGNode* succNode = edge->getDstNode();
+//            if (visited.find(succNode) == visited.end())
+//            {
+//                visited.insert(succNode);
+//                worklist.push(succNode);
+//            }
+//        }
+//    }
+//}
+//
+///*!
+// * An example to query/collect all the uses of a definition of a value along value-flow graph (VFG)
+// */
+//void traverseOnVFG(const SVFG* vfg, SVFValue* val)
+//{
+//    SVFIR* pag = SVFIR::getPAG();
+//
+//    PAGNode* pNode = pag->getGNode(pag->getValueNode(val));
+//    const VFGNode* vNode = vfg->getDefSVFGNode(pNode);
+//    FIFOWorkList<const VFGNode*> worklist;
+//    Set<const VFGNode*> visited;
+//    worklist.push(vNode);
+//
+//    /// Traverse along VFG
+//    while (!worklist.empty())
+//    {
+//        const VFGNode* vNode = worklist.pop();
+//        for (VFGNode::const_iterator it = vNode->OutEdgeBegin(), eit =
+//                    vNode->OutEdgeEnd(); it != eit; ++it)
+//        {
+//            VFGEdge* edge = *it;
+//            VFGNode* succNode = edge->getDstNode();
+//            if (visited.find(succNode) == visited.end())
+//            {
+//                visited.insert(succNode);
+//                worklist.push(succNode);
+//            }
+//        }
+//    }
+//
+//    /// Collect all LLVM Values
+//    for(Set<const VFGNode*>::const_iterator it = visited.begin(), eit = visited.end(); it!=eit; ++it)
+//    {
+//        // const VFGNode* node = *it;
+//        /// can only query VFGNode involving top-level pointers (starting with % or @ in LLVM IR)
+//        PAGNode* pNode = vfg->getLHSTopLevPtr(node);
+//        /// SVFValue* val = pNode->getValue();
+//    }
+//}
 
-    NodeID pNodeId = pta->getPAG()->getValueNode(val);
-    const PointsTo& pts = pta->getPts(pNodeId);
-    for (PointsTo::iterator ii = pts.begin(), ie = pts.end();
-            ii != ie; ii++)
-    {
-        rawstr << " " << *ii << " ";
-        PAGNode* targetObj = pta->getPAG()->getGNode(*ii);
-        if(targetObj->hasValue())
-        {
-            rawstr << "(" << targetObj->getValue()->toString() << ")\t ";
-        }
+class SVFGBuilder_Opt:public SVFGBuilder{
+public:
+    explicit SVFGBuilder_Opt(bool _SVFGWithIndCall = false): SVFGBuilder(_SVFGWithIndCall){
+
     }
-
-    return rawstr.str();
-
-}
-
-
-/*!
- * An example to query/collect all successor nodes from a ICFGNode (iNode) along control-flow graph (ICFG)
- */
-void traverseOnICFG(ICFG* icfg, const SVFInstruction* svfInst)
-{
-    ICFGNode* iNode = icfg->getICFGNode(svfInst);
-    FIFOWorkList<const ICFGNode*> worklist;
-    Set<const ICFGNode*> visited;
-    worklist.push(iNode);
-
-    /// Traverse along VFG
-    while (!worklist.empty())
-    {
-        const ICFGNode* vNode = worklist.pop();
-        for (ICFGNode::const_iterator it = vNode->OutEdgeBegin(), eit =
-                    vNode->OutEdgeEnd(); it != eit; ++it)
-        {
-            ICFGEdge* edge = *it;
-            ICFGNode* succNode = edge->getDstNode();
-            if (visited.find(succNode) == visited.end())
-            {
-                visited.insert(succNode);
-                worklist.push(succNode);
-            }
-        }
+    virtual ~SVFGBuilder_Opt() = default;
+    SVFG* buildOptSVFG(BVDataPTAImpl* pta){
+        return build(pta, VFG::FULLSVFG_OPT);
     }
-}
-
-/*!
- * An example to query/collect all the uses of a definition of a value along value-flow graph (VFG)
- */
-void traverseOnVFG(const SVFG* vfg, SVFValue* val)
-{
-    SVFIR* pag = SVFIR::getPAG();
-
-    PAGNode* pNode = pag->getGNode(pag->getValueNode(val));
-    const VFGNode* vNode = vfg->getDefSVFGNode(pNode);
-    FIFOWorkList<const VFGNode*> worklist;
-    Set<const VFGNode*> visited;
-    worklist.push(vNode);
-
-    /// Traverse along VFG
-    while (!worklist.empty())
-    {
-        const VFGNode* vNode = worklist.pop();
-        for (VFGNode::const_iterator it = vNode->OutEdgeBegin(), eit =
-                    vNode->OutEdgeEnd(); it != eit; ++it)
-        {
-            VFGEdge* edge = *it;
-            VFGNode* succNode = edge->getDstNode();
-            if (visited.find(succNode) == visited.end())
-            {
-                visited.insert(succNode);
-                worklist.push(succNode);
-            }
-        }
-    }
-
-    /// Collect all LLVM Values
-    for(Set<const VFGNode*>::const_iterator it = visited.begin(), eit = visited.end(); it!=eit; ++it)
-    {
-        // const VFGNode* node = *it;
-        /// can only query VFGNode involving top-level pointers (starting with % or @ in LLVM IR)
-        PAGNode* pNode = vfg->getLHSTopLevPtr(node);
-        /// SVFValue* val = pNode->getValue();
-    }
-}
+};
 
 int main(int argc, char ** argv)
 {
@@ -173,15 +184,15 @@ int main(int argc, char ** argv)
 
     /// ICFG
     ICFG* icfg = pag->getICFG();
-    icfg->dump("icfg");
+    //icfg->dump("icfg");
 
     /// Value-Flow Graph (VFG)
     VFG* vfg = new VFG(callgraph);
-
+    vfg->dump("vfg");
     /// Sparse value-flow graph (SVFG)
-    SVFGBuilder svfBuilder(true);
-    //SVFG* svfg =
-    svfBuilder.buildFullSVFG(ander);
+    SVFGBuilder_Opt svfBuilder(true);
+    SVFG* svfg = svfBuilder.buildOptSVFG(ander);
+    svfg->dump("svfg");
 
     /// Collect uses of an LLVM Value
     /// traverseOnVFG(svfg, value);
