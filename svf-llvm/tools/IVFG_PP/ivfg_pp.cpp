@@ -1,5 +1,4 @@
 #include <cxxabi.h>
-#include <stdio.h>
 #include <regex>
 #include "nlohmann/json.hpp"
 #include "Graphs/SVFG.h"
@@ -48,8 +47,8 @@ void replaceAll(std::string& str, const std::string& from,
 std::string rustDemangle(std::string oriName) {
     char st[300];
     int res = rustc_demangle(oriName.c_str(), st, 300);
-    return std::string(st);
     assert(res);
+    return std::string(st);
 }
 
 void demangleRustName(dictTy& dict) {
@@ -84,7 +83,7 @@ void demangleCPPName(dictTy& dict) {
             sr_it++;
             s32_t status;
             char* realname =
-                abi::__cxa_demangle(catch_str.c_str(), 0, 0, &status);
+                abi::__cxa_demangle(catch_str.c_str(), nullptr, nullptr, &status);
             if (realname == nullptr) {
                 continue;
             }
@@ -93,31 +92,6 @@ void demangleCPPName(dictTy& dict) {
             replaceAll(it.second, catch_str, realname_str);
         }
     }
-}
-
-static std::string dict2str(std::map<std::string, std::string> dict) {
-    std::string str;
-    std::stringstream rawstr(str);
-    for (auto& it : dict) {
-        trim(it.second);
-    }
-    if (Options::demangleRust()) {
-        demangleRustName(dict);
-    }
-    if (Options::demangleCPP()) {
-        demangleCPPName(dict);
-    }
-    // print
-    rawstr << "node_feature: {";
-    for (auto& item : dict) {
-        // if (item.first != "inst_full" && item.first != "var_name" &&
-        // item.first != "idx") continue;
-        rawstr << "\"\"\"" << item.first << "\"\"\""
-               << " : "
-               << "\"\"\"" << item.second << "\"\"\", ";
-    }
-    rawstr << "}";
-    return rawstr.str();
 }
 
 void fea_loc(SVFGNode* node, dictTy& dict) {
@@ -212,13 +186,12 @@ bool var_has_val(const SVFVar* var) {
     }
     return var->hasValue();
 }
+
 typedef std::map<SVFGNode*, dictTy> node_dict_type;
 #define NodeTy(x, y) SVF::x* ptr = SVFUtil::dyn_cast<SVF::x>(y)
 #define Is(x, y) (x::classof(y))
 
 node_dict_type get_nodes_features(SVFG* svfg) {
-    // std::ofstream fout;
-    // fout.open(featruePath.c_str(), std::ios::out | std::ios::trunc);
     node_dict_type res;
     for (SVF::u32_t i = 0; i < svfg->getSVFGNodeNum(); i++) {
         SVFGNode* node = svfg->getSVFGNode(i);
@@ -255,7 +228,6 @@ node_dict_type get_nodes_features(SVFG* svfg) {
                     dict["dest_type"] = "";
                     dict["inst_full"] = node->getValue()->toString();
                 }
-                dict2str(dict);
             } else {
                 dict["dest_name"] = LVar->getValueName();
                 // FIXME::SVF has bug when using LVar->getType
@@ -314,149 +286,10 @@ node_dict_type get_nodes_features(SVFG* svfg) {
             dict["branch_num"] = std::to_string(ptr->getOpVerNum());
         }
         res[node] = dict;
-        //        fout << "Node" << static_cast<const void*>(node) << "\t";
-        //        fout << dict2str(dict) << "\n";
     }
-    // fout.close();
     return res;
 }
 
-void dump_nodes_feature(node_dict_type& dict, std::string feature_path) {
-    std::ofstream fout;
-    fout.open(feature_path.c_str(), std::ios::out | std::ios::trunc);
-    for (auto& it : dict) {
-        fout << "Node" << static_cast<const void*>(it.first) << "\t";
-        fout << dict2str(it.second) << "\n";
-    }
-    fout.close();
-}
-
-void dfs_var_name(SVFGNode* node, node_dict_type& dict,
-                  unordered_map<SVF::u32_t, int>& visited,
-                  std::string var_name) {
-    if (node == nullptr || visited.count(node->getId())) {
-        return;
-    }
-    auto& node_dict = dict[node];
-    if (node_dict.count("dest_name") && node_dict["dest_name"] != "") {
-        var_name = node_dict["dest_name"];
-    }
-    if (var_name != "") {
-        node_dict["var_name"] = var_name;
-        visited[node->getId()] = 1;
-        for (auto it = node->getOutEdges().begin();
-             it != node->getOutEdges().end(); it++) {
-            if ((*it)->isDirectVFGEdge()) {
-                dfs_var_name((*it)->getDstNode(), dict, visited, var_name);
-            }
-        }
-    }
-}
-
-void del_svfg_all_edges(SVFGNode* node, SVFG* svfg) {
-    std::vector<SVF::GenericNode<SVF::VFGNode, SVF::VFGEdge>::EdgeType*> in,
-        out;
-    for (auto it = node->getInEdges().begin(); it != node->getInEdges().end();
-         it++) {
-        in.push_back(*it);
-    }
-    for (auto it : in) {
-        svfg->removeSVFGEdge(it);
-    }
-    for (auto it = node->OutEdgeBegin(); it != node->OutEdgeEnd(); it++) {
-        out.push_back(*it);
-    }
-    for (auto it : out) {
-        svfg->removeSVFGEdge(it);
-    }
-}
-
-void impl_var_name(SVFG* svfg, node_dict_type& dict) {
-    unordered_map<SVF::u32_t, int> visited;
-    for (SVF::u32_t i = 0; i < svfg->nodeNum; i++) {
-        SVFGNode* node = svfg->getSVFGNode(i);
-        dfs_var_name(node, dict, visited, "");
-    }
-    for (auto& it : dict) {
-        if (!it.second.count("var_name")) {
-            del_svfg_all_edges(it.first, svfg);
-            svfg->removeSVFGNode(it.first);
-        }
-    }
-}
-
-std::map<SVFGNode*, int> get_new_node_id(SVFG* svfg, const SVFFunction* fun) {
-    std::map<SVFGNode*, int> node2id;
-    int s = 0;
-    for (auto it = svfg->getVFGNodeBegin(fun); it != svfg->getVFGNodeEnd(fun);
-         it++) {
-        SVFGNode* node = (*it);
-        node2id[node] = s++;
-    }
-    for (auto it = svfg->getVFGNodeBegin(fun); it != svfg->getVFGNodeEnd(fun);
-         it++) {
-        SVFGNode* node = (*it);
-        for (auto it = node->OutEdgeBegin(); it != node->OutEdgeEnd(); it++) {
-            SVFGNode* node = (*it)->getDstNode();
-            if (node2id.find(node) == node2id.end()) {
-                node2id[node] = s++;
-            }
-        }
-    }
-    return node2id;
-}
-
-void dump_graph(SVFG* svfg, const SVFFunction* fun, std::string graphPath,
-                std::map<SVFGNode*, int>& node2id) {
-    std::ofstream fout;
-    fout.open(graphPath.c_str(), std::ios::out | std::ios::trunc);
-    for (auto it = svfg->getVFGNodeBegin(fun); it != svfg->getVFGNodeEnd(fun);
-         it++) {
-        SVFGNode* node = (*it);
-        fout << std::to_string(node2id[node]);
-        for (auto it = node->OutEdgeBegin(); it != node->OutEdgeEnd(); it++) {
-            SVFGNode* dst_node = (*it)->getDstNode();
-            fout << " " << std::to_string(node2id[dst_node]);
-        }
-        fout << "\n";
-    }
-    fout.close();
-}
-
-void dump_varname(std::string featurePath, std::map<SVFGNode*, int>& node2id,
-                  node_dict_type& dict) {
-    std::ofstream fout;
-    fout.open(featurePath.c_str(), std::ios::out | std::ios::trunc);
-    for (auto it = node2id.begin(); it != node2id.end(); it++) {
-        fout << std::to_string(it->second) << "," << dict[it->first]["var_name"]
-             << "\n";
-    }
-    fout.close();
-}
-
-void generate_graph_dataset(SVFG* svfg, SVFModule* svfModule,
-                            node_dict_type& dict) {
-    for (auto it = svfModule->getFunctionSet().begin();
-         it != svfModule->getFunctionSet().end(); it++) {
-        const SVFFunction* func = (*it);
-        cout << func->getName() << endl;
-        if (!svfg->hasVFGNodes(func)) continue;
-        std::map<SVFGNode*, int> node2id = get_new_node_id(svfg, func);
-        // FIXME::cpp/rust need mangle name
-        dump_graph(svfg, func, Options::graphPath() + func->getName(), node2id);
-        dump_varname(Options::featurePath() + func->getName(), node2id, dict);
-    }
-}
-
-class SVFGBuilder_Opt : public SVFGBuilder {
-public:
-    explicit SVFGBuilder_Opt(bool _SVFGWithIndCall = false)
-        : SVFGBuilder(_SVFGWithIndCall) {}
-    virtual ~SVFGBuilder_Opt() = default;
-    SVFG* buildOptSVFG(BVDataPTAImpl* pta) {
-        return build(pta, VFG::FULLSVFG_OPT);
-    }
-};
 
 typedef map<const SVFInstruction*, SVFGNode*> inst2VFGNode_type;
 typedef map<const SVFArgument*, SVFGNode*> arg2VFGNode_type;
@@ -472,7 +305,6 @@ bb2VFGNodeId_type map_BB2VFGNode(SVFModule* svfModule, SVFG* svfg) {
         auto var = getLHSTopLevPtr(node);
         // dummy vfgNode
         if (var == nullptr || !var_has_val(var)) continue;
-        bool isInst = 0;
         if (ISA(FormalParmVFGNode)) {
             auto val = SVFUtil::dyn_cast<SVFArgument>(var->getValue());
             // FIME::it is strange
@@ -609,61 +441,6 @@ void dump_valueflow_graph(SVFG* svfg, string output_path) {
     outFile.close();
 }
 
-void tranverse_svfg(SVFG* svfg, node_dict_type& fea) {
-    json j;
-    j["node_list"] = json::array();
-    j["edge_list"] = json::array();
-    j["node_attr"] = json::array();
-    for (uint32_t i = 0; i < svfg->getSVFGNodeNum(); ++i) {
-        auto node = svfg->getSVFGNode(i);
-        j["node_list"].push_back(Name(node));
-        j["node_attr"].push_back(fea[node]);
-        for (auto edge : node->getOutEdges()) {
-            auto dstNode = edge->getDstNode();
-            j["edge_list"].push_back({Name(node), Name(dstNode)});
-        }
-        //        for(auto it :fea[node]){
-        //
-        //        }
-    }
-    auto buf = json::to_bjdata(j);
-    std::ofstream outFile("ivfg.bin", std::ios::binary);
-    outFile.write(reinterpret_cast<char*>(buf.data()),
-                  sizeof(unsigned char) * buf.size());
-    outFile.close();
-}
-
-void tranverse_bb(SVFG* svfg, SVFModule* svfModule) {
-    json j;
-    for (auto func : svfModule->getFunctionSet()) {
-        auto node_list = vector<uint64_t>();
-        auto edge_list = vector<vector<uint64_t> >();
-        auto node_labels = vector<string>();
-        for (auto bb : func->getBasicBlockList()) {
-            node_list.push_back(Name(bb));
-            node_labels.push_back(bb->getName());
-            for (auto nxt_bb : bb->getSuccessors()) {
-                vector<uint64_t> edge = {Name(bb), Name(nxt_bb)};
-                edge_list.push_back(edge);
-            }
-        }
-
-        json j1 = json::array();
-        for (auto& name : node_labels) {
-            j1.push_back({{"label", name}});
-        }
-        node_dict_type dict;
-        j[func->getName()] = {{"node_list", node_list},
-                              {"edge_list", edge_list},
-                              {"node_attr", j1}};
-    }
-    auto buf = json::to_bjdata(j);
-    std::ofstream outFile("bb.bin", std::ios::binary);
-    outFile.write(reinterpret_cast<char*>(buf.data()),
-                  sizeof(unsigned char) * buf.size());
-    outFile.close();
-}
-
 
 int main(int argc, char** argv) {
     char** arg_value = new char*[argc];
@@ -689,7 +466,8 @@ int main(int argc, char** argv) {
 
     SVFGBuilder svfBuilder(true);
     SVFG* svfg = svfBuilder.buildFullSVFG(ander);
-    map_BB2VFGNode(svfModule, svfg);
+
+    dump_bb_graph(svfModule, svfg, )
     //    svfg->getPAG()->dump("pag-example.dot");
     //    svfg->getPAG()->getICFG()->dump("icfg-example.dot");
     //    svfg->dump("svfg-example.dot");
@@ -714,25 +492,3 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-// #include"nlohmann/json.hpp"
-// #include"numpy_api.hpp"
-// using namespace nlohmann;
-// int main() {
-//     json j;
-//     j["pi"] = {1, 2, 3};
-//     j["answer"]["everything"] = 42;
-//     j["edge vector"] = {{1,2},{3,4},{5,6}, {7, 8}};
-//     std::cout << j << std::endl;
-//     auto buf = json::to_bjdata(j);
-//     std::cout << buf.size() << std::endl;
-//     std::ofstream outFile("output.bin", std::ios::binary);
-//     outFile.write(reinterpret_cast<char*>(buf.data()), sizeof(unsigned char)
-//     * buf.size()); outFile.close(); return 0;
-////    const std::vector<long unsigned> shape{2, 3};
-////    const bool fortran_order{false};
-////    const std::string path{"out.npy"};
-////
-////    const std::vector<double> data1{1, 2, 3, 4, 5, 6};
-////    npy::SaveArrayAsNumpy(path, fortran_order, shape.size(), shape.data(),
-/// data1);
-//}
