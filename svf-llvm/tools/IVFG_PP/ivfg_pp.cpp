@@ -122,7 +122,7 @@ std::map<SVFGNode::VFGNodeK, std::string> nodeType2Str = {
 void fea_nodeType(SVFGNode* node, dictTy& dict) {
     // FIXME::type maybe wrong
     dict["node_type"] = nodeType2Str[SVFGNode::VFGNodeK(node->getNodeKind())];
-    dict["uid"] = Name(node);
+    dict["uid"] = std::to_string(Name(node));
 }
 
 const PAGNode* getLHSTopLevPtr(const VFGNode* node) {
@@ -384,7 +384,7 @@ void dump_bb_graph(SVFModule* svfModule, SVFG* svfg, string output_path){
         for (auto bb : func->getBasicBlockList()) {
             node_list.push_back(Name(bb));
             assert(bb2VfgNodeId.find(bb) != bb2VfgNodeId.end());
-            j1.push_back({{"uid", Name(bb)}, {"bb_label", bb->getName()}, {"vfg_nodes", bb2VfgNodeId[bb]}});
+            j1.push_back({{"uid", Name(bb)}, {"bb_label", bb->getName()}, {"func_name", bb->getFunction()->getName()}, {"vfg_nodes", bb2VfgNodeId[bb]}});
             for (auto nxt_bb : bb->getSuccessors()) {
                 vector<uint64_t> edge = {Name(bb), Name(nxt_bb)};
                 edge_list.push_back(edge);
@@ -428,6 +428,7 @@ void dump_valueflow_graph(SVFG* svfg, string output_path) {
     for (uint32_t i = 0; i < svfg->getSVFGNodeNum(); ++i) {
         auto node = svfg->getSVFGNode(i);
         j["node_list"].push_back(Name(node));
+        assert(fea.find(node) != fea.end());
         j["node_attr"].push_back(fea[node]);
         for (auto edge : node->getOutEdges()) {
             auto dstNode = edge->getDstNode();
@@ -467,20 +468,8 @@ int main(int argc, char** argv) {
     SVFGBuilder svfBuilder(true);
     SVFG* svfg = svfBuilder.buildFullSVFG(ander);
 
-    dump_bb_graph(svfModule, svfg, )
-    //    svfg->getPAG()->dump("pag-example.dot");
-    //    svfg->getPAG()->getICFG()->dump("icfg-example.dot");
-    //    svfg->dump("svfg-example.dot");
-    //    tranverse_bb(svfg, svfModule);
-    //    node_dict_type res = get_nodes_features(svfg);
-    //    tranverse_svfg(svfg, res);
-    // generate_graph_dataset(svfg, svfModule, res);
-
-    // dump_nodes_feature(res, Options::featurePath());
-    // dump_graph(svfg, Options::graphPath(), get_new_node_id(svfg));
-    // svfg->dump(Options::graphPath(), true);
-
-    /// dump_edge_features(svfg, Options::featurePath());
+    dump_bb_graph(svfModule, svfg, Options::bb_graph_path());
+    dump_valueflow_graph(svfg, Options::valueflow_graph_path());
 
     AndersenWaveDiff::releaseAndersenWaveDiff();
     SVFIR::releaseSVFIR();
