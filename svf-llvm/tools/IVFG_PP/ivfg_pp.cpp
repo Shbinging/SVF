@@ -442,6 +442,32 @@ void dump_valueflow_graph(SVFG* svfg, string output_path) {
     outFile.close();
 }
 
+void dump_call_graph(SVFG* svfg, string output_path){
+    auto cg = svfg->getPTA()->getPTACallGraph();
+    json j;
+    j["node_list"] = json::array();
+    j["edge_list"] = json::array();
+    j["node_attr"] = json::array();
+    //TODO::maybe can record callsite
+    for(auto it : *cg){
+        auto node = it.second;
+        j["node_list"].push_back(Name(node));
+        for(auto edge:node->getOutEdges()){
+            auto dstNode = edge->getDstNode();
+            j["edge_list"].push_back({Name(node), Name(dstNode)});
+        }
+        auto ja = json::array();
+        for(auto bb:node->getFunction()->getBasicBlockList()){
+            ja.push_back(Name(bb));
+        }
+        j["node_attr"].push_back({{"uid", Name(node)}, {"bb_nodes", ja}});
+    }
+    auto buf = json::to_bjdata(j);
+    std::ofstream outFile(output_path, std::ios::binary);
+    outFile.write(reinterpret_cast<char*>(buf.data()),
+                  sizeof(unsigned char) * buf.size());
+    outFile.close();
+}
 
 int main(int argc, char** argv) {
     char** arg_value = new char*[argc];
@@ -470,6 +496,7 @@ int main(int argc, char** argv) {
 
     dump_bb_graph(svfModule, svfg, Options::bb_graph_path());
     dump_valueflow_graph(svfg, Options::valueflow_graph_path());
+    dump_call_graph(svfg, Options::call_graph_path());
 
     AndersenWaveDiff::releaseAndersenWaveDiff();
     SVFIR::releaseSVFIR();
