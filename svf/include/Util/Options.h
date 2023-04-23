@@ -267,6 +267,11 @@ public:
     static const Option<std::string> featurePath;
     static const Option<std::string> graphPath;
     static const Option<bool> flow2vec;
+
+    // ivfg_pp
+    static const Option<std::string> valueflow_graph_path;
+    static const Option<std::string> bb_graph_path;
+    static const Option<std::string> call_graph_path;
 };
 }  // namespace SVF
 
