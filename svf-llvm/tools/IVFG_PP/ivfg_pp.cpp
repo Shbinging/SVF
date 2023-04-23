@@ -384,7 +384,7 @@ void dump_bb_graph(SVFModule* svfModule, SVFG* svfg, string output_path){
         for (auto bb : func->getBasicBlockList()) {
             node_list.push_back(Name(bb));
             assert(bb2VfgNodeId.find(bb) != bb2VfgNodeId.end());
-            j1.push_back({{"uid", Name(bb)}, {"bb_label", bb->getName()}, {"func_name", bb->getFunction()->getName()}, {"vfg_nodes", bb2VfgNodeId[bb]}});
+            j1.push_back({{"uid", Name(bb)}, {"bb_name", bb->getName()}, {"func_name", bb->getFunction()->getName()}, {"vfg_nodes", bb2VfgNodeId[bb]}});
             for (auto nxt_bb : bb->getSuccessors()) {
                 vector<uint64_t> edge = {Name(bb), Name(nxt_bb)};
                 edge_list.push_back(edge);
@@ -418,6 +418,13 @@ void postprocesss_nodes_features(node_dict_type& node_dict){
     }
 }
 
+#define EdgeK(x) \
+    { SVFGEdge::VFGEdgeK::x, #x }
+std::map<SVFGEdge::VFGEdgeK, std::string> edgeType2Str = {
+    EdgeK(IntraDirectVF), EdgeK(IntraIndirectVF), EdgeK(CallDirVF), EdgeK(RetDirVF),
+    EdgeK(CallIndVF), EdgeK(RetIndVF)
+};
+
 void dump_valueflow_graph(SVFG* svfg, string output_path) {
     auto fea = get_nodes_features(svfg);
     postprocesss_nodes_features(fea);
@@ -425,14 +432,20 @@ void dump_valueflow_graph(SVFG* svfg, string output_path) {
     j["node_list"] = json::array();
     j["edge_list"] = json::array();
     j["node_attr"] = json::array();
+    j["edge_attr"] = json::array();
     for (uint32_t i = 0; i < svfg->getSVFGNodeNum(); ++i) {
         auto node = svfg->getSVFGNode(i);
         j["node_list"].push_back(Name(node));
         assert(fea.find(node) != fea.end());
         j["node_attr"].push_back(fea[node]);
-        for (auto edge : node->getOutEdges()) {
-            auto dstNode = edge->getDstNode();
-            j["edge_list"].push_back({Name(node), Name(dstNode)});
+        int s = 0;
+        json j1;
+        for (auto edge : node->getInEdges()) {
+            auto srcNode = edge->getSrcNode();
+            j["edge_list"].push_back({Name(srcNode), Name(node)});
+            j1["edge_type"] = edgeType2Str[(SVFGEdge::VFGEdgeK)edge->getEdgeKind()];
+            j1["edge_ord"] = s++;
+            j["edge_attr"].push_back(j1);
         }
     }
     auto buf = json::to_bjdata(j);
@@ -460,7 +473,7 @@ void dump_call_graph(SVFG* svfg, string output_path){
         for(auto bb:node->getFunction()->getBasicBlockList()){
             ja.push_back(Name(bb));
         }
-        j["node_attr"].push_back({{"uid", Name(node)}, {"bb_nodes", ja}});
+        j["node_attr"].push_back({{"uid", Name(node)}, {"bb_nodes", ja}, {"func_name", node->getFunction()->getName()}});
     }
     auto buf = json::to_bjdata(j);
     std::ofstream outFile(output_path, std::ios::binary);
