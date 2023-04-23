@@ -232,6 +232,9 @@ node_dict_type get_nodes_features(SVFG* svfg) {
                 dict["dest_name"] = LVar->getValueName();
                 // FIXME::SVF has bug when using LVar->getType
                 dict["dest_type"] = node->getValue()->getType()->toString();
+                if (node->getValue()->getType()){
+                    dict["dest_type_uid"] = std::to_string(Name(node->getValue()->getType()));
+                }
                 dict["inst_full"] = LVar->getValue()->toString();
                 const Value* val =
                     LLVMModuleSet::getLLVMModuleSet()->getLLVMValue(
@@ -482,6 +485,161 @@ void dump_call_graph(SVFG* svfg, string output_path){
     outFile.close();
 }
 
+#define ISTy(type) const type* res = SVFUtil::dyn_cast<type>(ty)
+std::string get_type_string(const SVFType* ty)
+{
+    std::string str;
+    llvm::raw_string_ostream rawstr(str);
+    const Type* llvm_ty = LLVMModuleSet::getLLVMModuleSet()->getLLVMType(ty);
+    if (llvm_ty == nullptr){
+        return "None";
+    }
+    rawstr << *llvm_ty;
+    std::string name = rawstr.str();
+    if (name.find('=') != name.npos){
+        return name.substr(0, name.find('='));
+    }else return name;
+}
+#include<algorithm>
+json get_type_attr(const SVFType* ty, std::unordered_map<const SVFType*, string>& visNode){
+    json attr;
+    if (ISTy(SVFIntergerType)){
+        attr["uid"] = Name(ty);
+        attr["ty_type"] = "int";
+        attr["ty_name"] = get_type_string(ty);
+        attr["ty_sig"] = get_type_string(ty);
+    }else if(ISTy(SVFPointerType)){
+        attr["uid"] = Name(ty);
+        attr["ty_type"] = "pointer";
+        attr["ty_name"] = get_type_string(ty);
+        attr["ty_sig"] = std::string("(*") + visNode[res->getPtrElementType()] + std::string(")");
+    }else if(ISTy(SVFArrayType)){
+        attr["uid"] = Name(ty);
+        attr["ty_type"] = "array";
+        attr["ty_name"] = get_type_string(ty);
+        vector<string> sub_ty_sigs;
+        for(int idx = 0; true;idx++){
+            const SVFType* ty_sub = res->getTypeInfo()->getOriginalElemType(idx);
+            if (ty_sub) {
+                sub_ty_sigs.push_back(visNode[ty_sub]);
+            }else break;
+        }
+        sort(sub_ty_sigs.begin(), sub_ty_sigs.end());
+        std::string str;
+        llvm::raw_string_ostream rawstr(str);
+        rawstr << "[";
+        for(auto st: sub_ty_sigs){
+            rawstr << st << ",";
+        }
+        rawstr << "]";
+        attr["ty_sig"] = rawstr.str();
+    }else if (ISTy(SVFStructType)){
+        attr["uid"] = Name(ty);
+        attr["ty_type"] = "struct";
+        attr["ty_name"] = get_type_string(ty);
+        vector<string> sub_ty_sigs;
+        for(int idx = 0; true;idx++){
+            const SVFType* ty_sub = res->getTypeInfo()->getOriginalElemType(idx);
+            if (ty_sub) {
+                sub_ty_sigs.push_back(visNode[ty_sub]);
+            }else break;
+        }
+        sort(sub_ty_sigs.begin(), sub_ty_sigs.end());
+        std::string str;
+        llvm::raw_string_ostream rawstr(str);
+        rawstr << "{";
+        for(auto st: sub_ty_sigs){
+            rawstr << st << "|";
+        }
+        rawstr << "}";
+        attr["ty_sig"] = rawstr.str();
+    }else if (ISTy(SVFFunctionType)){
+        attr["uid"] = Name(ty);
+        attr["ty_type"] = "func";
+        attr["ty_name"] = "func";
+        attr["ty_sig"] = "func";
+        //TODO
+    }else if (ISTy(SVFOtherType)){
+        //TODO
+        if (ty->toString() == "float" || ty->toString() == "double"){
+            attr["uid"] = Name(ty);
+            attr["ty_type"] = get_type_string(ty);
+            attr["ty_name"] = get_type_string(ty);
+            attr["ty_sig"] = get_type_string(ty);
+        }else{
+            attr["uid"] = Name(ty);
+            attr["ty_type"] = "None";
+            attr["ty_name"] = "None";
+            attr["ty_sig"] = "None";
+        }
+    }else{
+        assert(0 && "unkown kind of type");
+    }
+    visNode[ty] = attr["ty_sig"];
+    return attr;
+}
+
+void dfs_type(const SVFType* ty, json& j, std::unordered_map<const SVFType*, string>& visNode){
+    if (ty->getKind())
+    if (visNode.find(ty) != visNode.end()){
+        return;
+    }
+    visNode[ty] = "self";
+    if (ISTy(SVFIntergerType)){
+
+    }else if(ISTy(SVFPointerType)){
+        j["edge_list"].push_back({Name(ty), Name(res->getPtrElementType())});
+        j["edge_attr"].push_back({{"edge_type", "is_point_of"}});
+        dfs_type(res->getPtrElementType(), j, visNode);
+    }else if(ISTy(SVFArrayType)){
+        int idx = 0;
+        for(;true;idx++){
+            if (res->getTypeInfo()->getOriginalElemType(idx)) {
+                j["edge_list"].push_back({Name(ty), Name(res->getTypeInfo()->getOriginalElemType(idx))});
+                j["edge_attr"].push_back({{"edge_type", "is_array_of"}});
+                dfs_type(res->getTypeInfo()->getOriginalElemType(idx), j, visNode);
+            }else break;
+        }
+    }else if (ISTy(SVFStructType)){
+        int idx = 0;
+        for(; true;idx++){
+            if (res->getTypeInfo()->getOriginalElemType(idx)) {
+                j["edge_list"].push_back({Name(ty), Name(res->getTypeInfo()->getOriginalElemType(idx))});
+                j["edge_attr"].push_back({{"edge_type", "is_struct_of"}});
+                dfs_type(res->getTypeInfo()->getOriginalElemType(idx), j, visNode);
+            }else break;
+        }
+    }else if (ISTy(SVFFunctionType)){
+        //TODO
+
+    }else if (ISTy(SVFOtherType)){
+        //TODO
+    }
+    j["node_list"].push_back(Name(ty));
+    j["node_attr"].push_back(get_type_attr(ty, visNode));
+}
+
+void dump_type_graph(SVFG* svfg, string output_path){
+    auto fea = get_nodes_features(svfg);
+    std::unordered_map<const SVFType*, string> visNode;
+    json j;
+    j["node_list"] = json::array();
+    j["edge_list"] = json::array();
+    j["node_attr"] = json::array();
+    j["edge_attr"] = json::array();
+    for(auto it : fea){
+        if (it.second.find("dest_type_uid") != it.second.end()){
+            SVFType* ty = (SVFType*) std::stoull(it.second["dest_type_uid"]);
+            dfs_type(ty, j, visNode);
+        }
+    }
+    auto buf = json::to_bjdata(j);
+    std::ofstream outFile(output_path, std::ios::binary);
+    outFile.write(reinterpret_cast<char*>(buf.data()),
+                  sizeof(unsigned char) * buf.size());
+    outFile.close();
+}
+
 int main(int argc, char** argv) {
     char** arg_value = new char*[argc];
     std::vector<std::string> moduleNameVec;
@@ -495,7 +653,6 @@ int main(int argc, char** argv) {
 
     SVFModule* svfModule =
         LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
-
     /// Build Program Assignment Graph (SVFIR)
     SVFIRBuilder builder(svfModule);
     SVFIR* pag = builder.build();
@@ -510,6 +667,8 @@ int main(int argc, char** argv) {
     dump_bb_graph(svfModule, svfg, Options::bb_graph_path());
     dump_valueflow_graph(svfg, Options::valueflow_graph_path());
     dump_call_graph(svfg, Options::call_graph_path());
+    dump_type_graph(svfg, Options::type_graph_path());
+
 
     AndersenWaveDiff::releaseAndersenWaveDiff();
     SVFIR::releaseSVFIR();
