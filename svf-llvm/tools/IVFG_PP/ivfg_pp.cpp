@@ -187,10 +187,26 @@ bool var_has_val(const SVFVar* var) {
     return var->hasValue();
 }
 
+string get_nodes_constant(const SVFVar* var){
+    if (var == nullptr || !var_has_val(var)) return "";
+    if (const SVFConstantInt* cint = SVFUtil::dyn_cast<SVFConstantInt>(var->getValue())){
+        json j;
+        j["type_uid"] = Name(cint->getType());
+        j["value"] = cint->getSExtValue();
+        return j.dump();
+    }else if (const SVFConstantFP* cfp = SVFUtil::dyn_cast<SVFConstantFP>(var->getValue())){
+        json j;
+        j["type_uid"] = Name(cfp->getType());
+        j["value"] = cfp->getFPValue();
+        return j.dump();
+    }
+    return "";
+}
+
 typedef std::map<SVFGNode*, dictTy> node_dict_type;
 #define NodeTy(x, y) SVF::x* ptr = SVFUtil::dyn_cast<SVF::x>(y)
 #define Is(x, y) (x::classof(y))
-
+#define ISA(type) const type* res = SVFUtil::dyn_cast<type>(node)
 node_dict_type get_nodes_features(SVFG* svfg) {
     node_dict_type res;
     for (SVF::u32_t i = 0; i < svfg->getSVFGNodeNum(); i++) {
@@ -290,6 +306,69 @@ node_dict_type get_nodes_features(SVFG* svfg) {
         }
         res[node] = dict;
     }
+    node_dict_type dict = res;
+    //generate constant information
+    for (uint32_t i = 0; i < svfg->getSVFGNodeNum(); i++) {
+        auto node = svfg->getSVFGNode(i);
+        // global
+        if (node->getICFGNode()->getBB() == nullptr) continue;
+        auto var = getLHSTopLevPtr(node);
+        // dummy vfgNode
+        if (var == nullptr || !var_has_val(var)) continue;
+        const SVFInstruction* inst = nullptr;
+        if (ISA(BinaryOPVFGNode)) {
+            json j = json::array();
+            bool f = 0;
+            for(uint32_t i = 0; i < res->getOpVerNum(); i++){
+                string st = get_nodes_constant(res->getOpVer(i));
+                if (st != ""){
+                    j.push_back(st);
+                    f = 1;
+                }
+            }
+            if (f) dict[node]["constant"] = j.dump();
+        } else if (ISA(BranchVFGNode)) { //br
+            //TODO current we don't have label node
+        } else if (ISA(CmpVFGNode)) {
+            json j = json::array();
+            bool f = 0;
+            for(uint32_t i = 0; i < res->getOpVerNum(); i++){
+                string st = get_nodes_constant(res->getOpVer(i));
+                if (st != ""){
+                    j.push_back(st);
+                    f = 1;
+                }
+            }
+            if (f) dict[node]["constant"] = j.dump();
+        } else if (ISA(PHIVFGNode)) {
+            //TODO current we don't have label node
+            inst = nullptr;
+        } else if (ISA(StmtVFGNode)) {
+            if (const StoreVFGNode* sNode = SVFUtil::dyn_cast<StoreVFGNode>(node)){
+                json j = json::array();
+                bool f = 0;
+                string st = get_nodes_constant(sNode->getPAGSrcNode());
+                if (st != ""){
+                        j.push_back(st);
+                        f = 1;
+                    }
+                if (f){
+                        dict[node]["constant"] = j.dump();
+                }
+            }
+        } else if (ISA(UnaryOPVFGNode)) {
+            json j = json::array();
+            bool f = 0;
+            for(uint32_t i = 0; i < res->getOpVerNum(); i++){
+                string st = get_nodes_constant(res->getOpVer(i));
+                if (st != ""){
+                    j.push_back(st);
+                    f = 1;
+                }
+            }
+            if (f) dict[node]["constant"] = j.dump();
+        }
+    }
     return res;
 }
 
@@ -297,7 +376,7 @@ node_dict_type get_nodes_features(SVFG* svfg) {
 typedef map<const SVFInstruction*, SVFGNode*> inst2VFGNode_type;
 typedef map<const SVFArgument*, SVFGNode*> arg2VFGNode_type;
 typedef map<const SVFBasicBlock*, vector<uint64_t>> bb2VFGNodeId_type;
-#define ISA(type) const type* res = SVFUtil::dyn_cast<type>(node)
+
 bb2VFGNodeId_type map_BB2VFGNode(SVFModule* svfModule, SVFG* svfg) {
     inst2VFGNode_type inst2VFGNode;
     arg2VFGNode_type arg2VFGNode;
