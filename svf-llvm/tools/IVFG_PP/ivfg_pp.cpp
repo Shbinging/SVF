@@ -122,6 +122,9 @@ std::map<SVFGNode::VFGNodeK, std::string> nodeType2Str = {
 void fea_nodeType(SVFGNode* node, dictTy& dict) {
     // FIXME::type maybe wrong
     dict["node_type"] = nodeType2Str[SVFGNode::VFGNodeK(node->getNodeKind())];
+//    if (node->getNodeKind() == SVFGNode::VFGNodeK::Store){
+//        printf("ok");
+//    }
     dict["uid"] = std::to_string(Name(node));
 }
 
@@ -165,7 +168,7 @@ const PAGNode* getLHSTopLevPtr(const VFGNode* node) {
     // FIXME::whther store can use DestNode?
     else if (const StoreVFGNode* store =
                  SVFUtil::dyn_cast<StoreVFGNode>(node)) {
-        return store->getPAGDstNode();
+        return store->getPAGSrcNode();
     }
     return nullptr;
 }
@@ -303,6 +306,18 @@ node_dict_type get_nodes_features(SVFG* svfg) {
         }
         if (NodeTy(PHIVFGNode, node)) {
             dict["branch_num"] = std::to_string(ptr->getOpVerNum());
+        }
+        if (NodeTy(StoreVFGNode, node)){
+            if (ptr->getInst() == nullptr){
+                dict.erase("dest_type");
+                dict.erase("dest_type_uid");
+                dict["inst_full"] = "";
+            }else{
+                dict.erase("dest_type");
+                dict.erase("dest_type_uid");
+                dict["inst_full"] = ptr->getInst()->toString();
+            }
+            dict["inst_op"] = "store";
         }
         res[node] = dict;
     }
