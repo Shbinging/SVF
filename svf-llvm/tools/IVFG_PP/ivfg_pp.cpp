@@ -379,11 +379,11 @@ bb2VFGNodeId_type map_BB2VFGNode(SVFModule* svfModule, SVFG* svfg) {
 void dump_bb_graph(SVFModule* svfModule, SVFG* svfg, string output_path){
     auto bb2VfgNodeId = map_BB2VFGNode(svfModule, svfg);
     json j;
+    auto node_list = vector<uint64_t>();
+    auto edge_list = vector<vector<uint64_t> >();
+    json j1 = json::array();
     for (auto func : svfModule->getFunctionSet()) {
-        auto node_list = vector<uint64_t>();
-        auto edge_list = vector<vector<uint64_t> >();
         //auto node_labels = vector<string>();
-        json j1 = json::array();
         for (auto bb : func->getBasicBlockList()) {
             node_list.push_back(Name(bb));
             assert(bb2VfgNodeId.find(bb) != bb2VfgNodeId.end());
@@ -394,10 +394,10 @@ void dump_bb_graph(SVFModule* svfModule, SVFG* svfg, string output_path){
             }
         }
         node_dict_type dict;
-        j[func->getName()] = {{"node_list", node_list},
-                              {"edge_list", edge_list},
-                              {"node_attr", j1}};
     }
+    j = {{"node_list", node_list},
+                          {"edge_list", edge_list},
+                          {"node_attr", j1}};
     auto buf = json::to_bjdata(j);
     std::ofstream outFile(output_path, std::ios::binary);
     outFile.write(reinterpret_cast<char*>(buf.data()),
