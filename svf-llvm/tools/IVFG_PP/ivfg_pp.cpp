@@ -9,6 +9,9 @@
 #include "Util/Options.h"
 #include "WPA/Andersen.h"
 #include "rustc_demangle.h"
+#include "Graphs/GenericGraph.h"
+
+
 using namespace nlohmann;
 using namespace std;
 using namespace SVF;
@@ -305,7 +308,7 @@ node_dict_type get_nodes_features(SVFG* svfg) {
             dict["mr_size"] = std::to_string(mr->getMR()->getRegionSize());
         }
         if (NodeTy(BranchVFGNode, node)){
-            `//TODO
+            //TODO
         }
         if (NodeTy(PHIVFGNode, node)) {
             dict["branch_num"] = std::to_string(ptr->getOpVerNum());
@@ -737,6 +740,43 @@ void dump_type_graph(SVFG* svfg, string output_path){
     outFile.close();
 }
 
+typedef GenericGraph<json, json> graph_ty;
+
+typedef unordered_map<uint64_t, uint64_t> inst_or_param2hvfg_type;
+graph_ty* build_hvfg_graph(SVFG* svfg){
+    inst_or_param2hvfg_type  inst_or_param2hvfg;
+    auto hvfg = new graph_ty();
+    int uid = 0;
+    for(uint32_t i = 0; i < svfg->getSVFGNodeNum(); i++){
+        auto node = svfg->getSVFGNode(i);
+        if (node->getICFGNode()->getBB() == nullptr){
+
+        }else {
+            auto var = getLHSTopLevPtr(node);
+            if (var == nullptr || !var_has_val(var)) continue;
+            if (ISA(FormalParmVFGNode)) {
+                if (res->getParam() == nullptr) continue;
+                json node_attr;
+                json attr;
+                node_attr["uid"] = uid++;
+                node_attr["type"] = "TVN";
+                node_attr["data"] = "param";
+                attr["type_uid"] = Name(res->getParam()->getType());
+                attr["inst_full"] = res->getParam()->getValue()->toString();
+                attr["name"] = res->getParam()->getValue()->getName();
+                node_attr["attr"] = attr;
+            } else if (ISA(ActualRetVFGNode)) {
+            } else if (ISA(BinaryOPVFGNode)) {
+            } else if (ISA(BranchVFGNode)) {
+            } else if (ISA(CmpVFGNode)) {
+            } else if (ISA(MSSAPHISVFGNode)) {
+            } else if (ISA(IntraPHIVFGNode)) {
+            } else if (ISA(StmtVFGNode)) {
+            } else if (ISA(UnaryOPVFGNode)) {
+            }
+        }
+    }
+}
 int main(int argc, char** argv) {
     char** arg_value = new char*[argc];
     std::vector<std::string> moduleNameVec;
@@ -761,10 +801,11 @@ int main(int argc, char** argv) {
     SVFGBuilder svfBuilder(true);
     SVFG* svfg = svfBuilder.buildFullSVFG(ander);
 
-    dump_bb_graph(svfModule, svfg, Options::bb_graph_path());
-    dump_valueflow_graph(svfg, Options::valueflow_graph_path());
-    dump_call_graph(svfg, Options::call_graph_path());
-    dump_type_graph(svfg, Options::type_graph_path());
+    build_hvfg_graph(svfg);
+//    dump_bb_graph(svfModule, svfg, Options::bb_graph_path());
+//    dump_valueflow_graph(svfg, Options::valueflow_graph_path());
+//    dump_call_graph(svfg, Options::call_graph_path());
+//    dump_type_graph(svfg, Options::type_graph_path());
 
 
     AndersenWaveDiff::releaseAndersenWaveDiff();
