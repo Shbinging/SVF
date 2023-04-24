@@ -740,43 +740,430 @@ void dump_type_graph(SVFG* svfg, string output_path){
     outFile.close();
 }
 
-typedef GenericGraph<json, json> graph_ty;
 
 typedef unordered_map<uint64_t, uint64_t> inst_or_param2hvfg_type;
-graph_ty* build_hvfg_graph(SVFG* svfg){
-    inst_or_param2hvfg_type  inst_or_param2hvfg;
-    auto hvfg = new graph_ty();
-    int uid = 0;
+string get_opcode(const SVFVar* LVar){
+    const Value* val =
+        LLVMModuleSet::getLLVMModuleSet()->getLLVMValue(
+            LVar->getValue());
+    const Instruction* ins = SVFUtil::dyn_cast<Instruction>(val);
+    assert(ins);
+    return std::string(ins->getOpcodeName());
+}
+
+struct pair_hash
+{
+    template <class T1, class T2>
+    std::size_t operator() (const std::pair<T1, T2> &pair) const {
+        return std::hash<T1>()(pair.first) ^ std::hash<T2>()(pair.second);
+    }
+};
+
+template<class IdxTy, class NodeTy, class EdgeTy>
+class graph {
+public:
+    static size_t hash_function(const pair<IdxTy, IdxTy>& key){
+        return Name(key.first) + Name(key.second);
+    }
+    unordered_map<pair<IdxTy, IdxTy>, EdgeTy, pair_hash> edges;
+    unordered_map<IdxTy, NodeTy> nodes;
+    unordered_map<IdxTy, vector<IdxTy>> succ, pred;
+    bool hasNode(IdxTy idx){
+        return nodes.find(idx) != nodes.end();
+    }
+    void addNode(IdxTy idx , NodeTy node){
+        nodes[idx] = node;
+        succ[idx] = vector<IdxTy>();
+        pred[idx] = vector<IdxTy>();
+    }
+    void addEdge(IdxTy src, IdxTy dest, EdgeTy edge){
+        edges[make_pair(src, dest)] = edge;
+        succ[src].push_back(dest);
+        pred[dest].push_back(src);
+    }
+    uint64_t getNodeId(IdxTy idx){
+        return Name(idx);
+    }
+    pair<uint64_t, uint64_t> getEdgeId(pair<IdxTy, IdxTy> edge_idx){
+        return make_pair(Name(edge_idx.first), Name(edge_idx.second));
+    }
+    NodeTy getNodeAttr(NodeTy node){
+        return node;
+    }
+    EdgeTy getEdgeAttr(EdgeTy edge){
+        return edge;
+    }
+
+    json dump(){
+        json j;
+        j["node_list"] = json::array();
+        j["node_attr"] = json::array();
+        j["edge_list"] = json::array();
+        j["edge_attr"] = json::array();
+        for(auto it: nodes){
+            j["node_list"].push_back(getNodeId(it.first));
+            j["node_attr"].push_back(getNodeAttr(it.second));
+        }
+        for(auto it:edges){
+            j["edge_list"].push_back(getEdgeId(it.first));
+            j["edge_attr"].push_back(getEdgeAttr(it.second));
+        }
+        return j;
+    }
+};
+
+class typeg_ty:public graph<const SVFType*, json, json>{
+public:
+    std::unordered_map<const SVFType*, string> visNode;
+    int cur_id = 0;
+
+    uint64_t get_ty_uid(const SVFType* ty){
+        return Name(ty);
+    }
+
+    string get_ty_sig(const SVFType* ty){
+        dfs_type(ty);
+        return nodes[ty]["typ_sig"].get<string>();
+    }
+
+    void dfs_type(const SVFType* ty){
+        if (ty->getKind())
+            if (visNode.find(ty) != visNode.end()){
+                return;
+            }
+        visNode[ty] = "self";
+        addNode(ty, json());
+        if (ISTy(SVFIntergerType)){
+
+        }else if(ISTy(SVFPointerType)){
+            dfs_type(res->getPtrElementType());
+            addEdge(ty, res->getPtrElementType(), json{{"edge_type","is_point_of"}});
+        }else if(ISTy(SVFArrayType)){
+            int idx = 0;
+            for(;true;idx++){
+                if (res->getTypeInfo()->getOriginalElemType(idx)) {
+                    dfs_type(res->getTypeInfo()->getOriginalElemType(idx));
+                    addEdge(ty, res->getTypeInfo()->getOriginalElemType(idx), json{{"edge_type", "is_array_of"}});
+                }else break;
+            }
+        }else if (ISTy(SVFStructType)){
+            int idx = 0;
+            for(; true;idx++){
+                if (res->getTypeInfo()->getOriginalElemType(idx)) {
+                    dfs_type(res->getTypeInfo()->getOriginalElemType(idx));
+                    addEdge(ty, res->getTypeInfo()->getOriginalElemType(idx), json{{"edge_type", "is_struct_of"}});
+                }else break;
+            }
+        }else if (ISTy(SVFFunctionType)){
+            //TODO
+
+        }else if (ISTy(SVFOtherType)){
+            //TODO
+        }
+        nodes[ty]["node_attr"] = get_type_attr(ty);
+    }
+    json get_type_attr(const SVFType* ty){
+        json attr;
+        if (ISTy(SVFIntergerType)){
+            attr["uid"] = Name(ty);
+            attr["ty_type"] = "int";
+            attr["ty_name"] = get_type_string(ty);
+            attr["ty_sig"] = get_type_string(ty);
+        }else if(ISTy(SVFPointerType)){
+            attr["uid"] = Name(ty);
+            attr["ty_type"] = "pointer";
+            attr["ty_name"] = get_type_string(ty);
+            attr["ty_sig"] = std::string("(*") + visNode[res->getPtrElementType()] + std::string(")");
+        }else if(ISTy(SVFArrayType)){
+            attr["uid"] = Name(ty);
+            attr["ty_type"] = "array";
+            attr["ty_name"] = get_type_string(ty);
+            vector<string> sub_ty_sigs;
+            for(int idx = 0; true;idx++){
+                const SVFType* ty_sub = res->getTypeInfo()->getOriginalElemType(idx);
+                if (ty_sub) {
+                    sub_ty_sigs.push_back(visNode[ty_sub]);
+                }else break;
+            }
+            sort(sub_ty_sigs.begin(), sub_ty_sigs.end());
+            std::string str;
+            llvm::raw_string_ostream rawstr(str);
+            rawstr << "[";
+            for(auto st: sub_ty_sigs){
+                rawstr << st << ",";
+            }
+            rawstr << "]";
+            attr["ty_sig"] = rawstr.str();
+        }else if (ISTy(SVFStructType)){
+            attr["uid"] = Name(ty);
+            attr["ty_type"] = "struct";
+            attr["ty_name"] = get_type_string(ty);
+            vector<string> sub_ty_sigs;
+            for(int idx = 0; true;idx++){
+                const SVFType* ty_sub = res->getTypeInfo()->getOriginalElemType(idx);
+                if (ty_sub) {
+                    sub_ty_sigs.push_back(visNode[ty_sub]);
+                }else break;
+            }
+            sort(sub_ty_sigs.begin(), sub_ty_sigs.end());
+            std::string str;
+            llvm::raw_string_ostream rawstr(str);
+            rawstr << "{";
+            for(auto st: sub_ty_sigs){
+                rawstr << st << "|";
+            }
+            rawstr << "}";
+            attr["ty_sig"] = rawstr.str();
+        }else if (ISTy(SVFFunctionType)){
+            attr["uid"] = Name(ty);
+            attr["ty_type"] = "func";
+            attr["ty_name"] = "func";
+            attr["ty_sig"] = "func";
+            //TODO
+        }else if (ISTy(SVFOtherType)){
+            //TODO
+            if (ty->toString() == "float" || ty->toString() == "double"){
+                attr["uid"] = Name(ty);
+                attr["ty_type"] = get_type_string(ty);
+                attr["ty_name"] = get_type_string(ty);
+                attr["ty_sig"] = get_type_string(ty);
+            }else{
+                attr["uid"] = Name(ty);
+                attr["ty_type"] = "None";
+                attr["ty_name"] = "None";
+                attr["ty_sig"] = "None";
+            }
+        }else{
+            assert(0 && "unkown kind of type");
+        }
+        visNode[ty] = attr["ty_sig"];
+        return attr;
+    }
+};
+class hvfg_ty:public graph<uint32_t, json, json> {
+public:
+    typedef unordered_map<SVFGNode*, uint32_t> svfNode2hvfNode_ty;
+    typedef unordered_map<uint32_t, SVFGNode*> hvfNode2svfNode_ty;
+    hvfNode2svfNode_ty hvfNode2svfNode;
+    svfNode2hvfNode_ty svfNode2hvfNode;
+
+    void bind_svfNode(SVFGNode* svfNode, uint32_t hvfNode){
+        hvfNode2svfNode[hvfNode] = svfNode;
+        svfNode2hvfNode[svfNode] = hvfNode;
+    }
+};
+
+hvfg_ty* svfg2hvfnode(SVFG* svfg){
+    //inst_or_param2hvfg_type  inst_or_param2hvfg;
+    auto hvfg = new hvfg_ty();
+    uint64_t uid = 0;
     for(uint32_t i = 0; i < svfg->getSVFGNodeNum(); i++){
         auto node = svfg->getSVFGNode(i);
         if (node->getICFGNode()->getBB() == nullptr){
-
+            //TODO
         }else {
             auto var = getLHSTopLevPtr(node);
             if (var == nullptr || !var_has_val(var)) continue;
             if (ISA(FormalParmVFGNode)) {
                 if (res->getParam() == nullptr) continue;
-                json node_attr;
-                json attr;
+                json node_attr = json();
+                json attr = json();
                 node_attr["uid"] = uid++;
                 node_attr["type"] = "TVN";
                 node_attr["data"] = "param";
-                attr["type_uid"] = Name(res->getParam()->getType());
+                //attr["type_uid"] = Name(res->getParam()->getType());
                 attr["inst_full"] = res->getParam()->getValue()->toString();
                 attr["name"] = res->getParam()->getValue()->getName();
                 node_attr["attr"] = attr;
+                hvfg->addNode(node_attr["uid"], node_attr);
+
+                //typeg->dfs_type(res->getParam()->getType());
+                //inst_or_param2hvfg[Name(res->getParam()->getValue())] = uid;
+                hvfg->bind_svfNode(node, node_attr["uid"]);
             } else if (ISA(ActualRetVFGNode)) {
+                json node_attr = json();
+                json attr = json();
+                node_attr["uid"] = uid++;
+                node_attr["type"] = "TVN";
+                node_attr["data"] = "call";
+                //attr["type_uid"] = Name(var->getType());
+                attr["inst_full"] = var->getValue()->toString();
+                //attr["func_type_uid"] = Name(res->getCaller()->getType());
+                attr["name"] = var->getValueName();
+                node_attr["attr"] = attr;
+                hvfg->addNode(node_attr["uid"], node_attr);
+
+                //inst_or_param2hvfg[Name(var->getValue())] = uid;
+                hvfg->bind_svfNode(node, node_attr["uid"]);
             } else if (ISA(BinaryOPVFGNode)) {
+                json node_attr = json();
+                json attr = json();
+                node_attr["uid"] = uid++;
+                node_attr["type"] = "TVN";
+                node_attr["data"] = get_opcode(var);
+                //attr["type_uid"] = Name(var->getType());
+                attr["inst_full"] = var->getValue()->toString();
+                attr["name"] = var->getValueName();
+                attr["op_code"] = get_opcode(var);
+                node_attr["attr"] = attr;
+                hvfg->addNode(node_attr["uid"], node_attr);
+
+                //inst_or_param2hvfg[Name(var->getValue())] = uid;
+                hvfg->bind_svfNode(node, node_attr["uid"]);
             } else if (ISA(BranchVFGNode)) {
+                json node_attr = json();
+                json attr = json();
+                node_attr["uid"] = uid++;
+                node_attr["type"] = "TVN";
+                node_attr["data"] = get_opcode(var);
+                attr["inst_full"] = var->getValue()->toString();
+                attr["op_code"] = get_opcode(var);
+//                vector<string> label_list;
+//                for(uint32_t i = 0; i < res->getBranchStmt()->getNumSuccessors(); i++){
+//                    label_list.push_back(res->getBranchStmt()->getSuccessor(i)->getBB()->getName());
+//                }
+//                attr["label_list"] = label_list;
+                node_attr["attr"] = attr;
+
+                //cout << node_attr.dump() << "\n";
+                hvfg->addNode(node_attr["uid"], node_attr);
+
+                hvfg->bind_svfNode(node, node_attr["uid"]);
             } else if (ISA(CmpVFGNode)) {
+                json node_attr = json();
+                json attr = json();
+                node_attr["uid"] = uid++;
+                node_attr["type"] = "TVN";
+                node_attr["data"] = get_opcode(var);
+                attr["inst_full"] = var->getValue()->toString();
+                attr["op_code"] = get_opcode(var);
+                node_attr["attr"] = attr;
+
+                //cout << node_attr.dump() << "\n";
+
+                hvfg->addNode(node_attr["uid"], node_attr);
+
+                hvfg->bind_svfNode(node, node_attr["uid"]);
             } else if (ISA(MSSAPHISVFGNode)) {
+                //FIXME::need test
+                json node_attr = json();
+                json attr = json();
+                node_attr["uid"] = uid++;
+                node_attr["type"] = "MN";
+                node_attr["data"] = "MPHI";
+                node_attr["attr"] = attr;
+
+                //cout << node_attr.dump() << "\n";
+
+                hvfg->addNode(node_attr["uid"], node_attr);
+
+                hvfg->bind_svfNode(node, node_attr["uid"]);
             } else if (ISA(IntraPHIVFGNode)) {
+                if (SVFUtil::isa<SVFFunction>(var->getValue())){
+                    continue;
+                }
+                json node_attr = json();
+                json attr = json();
+                node_attr["uid"] = uid++;
+                node_attr["type"] = "TVN";
+                node_attr["data"] = get_opcode(var);
+                attr["inst_full"] = var->getValue()->toString();
+                attr["op_code"] = get_opcode(var);
+                node_attr["attr"] = attr;
+
+
+                //cout << node_attr.dump() << "\n";
+
+                hvfg->addNode(node_attr["uid"], node_attr);
+
+                hvfg->bind_svfNode(node, node_attr["uid"]);
             } else if (ISA(StmtVFGNode)) {
+                if (SVFUtil::isa<SVFCallInst>(res->getInst())) continue;
+                json node_attr = json();
+                json attr = json();
+                node_attr["uid"] = uid++;
+                if (ISA(CopyVFGNode)){
+                    node_attr["type"] = "TVN";
+                }else if (ISA(GepVFGNode)){
+                    node_attr["type"] = "TVN";
+                }else{
+                    node_attr["type"] = "MN";
+                }
+                if (ISA(StoreVFGNode)){
+                    node_attr["data"] = "store";
+                    attr["inst_full"] = res->getInst()->toString();
+                    attr["op_code"] = "store";
+                    node_attr["attr"] = attr;
+                }else {
+                    node_attr["data"] = get_opcode(var);
+                    attr["inst_full"] = var->getValue()->toString();
+                    attr["op_code"] = get_opcode(var);
+                    node_attr["attr"] = attr;
+                }
+
+                //cout << node_attr.dump() << "\n";
+
+                hvfg->addNode(node_attr["uid"], node_attr);
+
+                hvfg->bind_svfNode(node, node_attr["uid"]);
             } else if (ISA(UnaryOPVFGNode)) {
+                json node_attr = json();
+                json attr = json();
+                node_attr["uid"] = uid++;
+                node_attr["type"] = "TVN";
+                node_attr["data"] = get_opcode(var);
+                attr["inst_full"] = var->getValue()->toString();
+                attr["name"] = var->getValueName();
+                attr["op_code"] = get_opcode(var);
+                node_attr["attr"] = attr;
+                hvfg->addNode(node_attr["uid"], node_attr);
+
+                hvfg->bind_svfNode(node, node_attr["uid"]);
             }
         }
     }
+    return hvfg;
 }
+
+void get_dest_node(VFGNode* startNode, uint32_t u, int& inc, hvfg_ty* hvfg, unordered_set<VFGNode*>& visited){
+    if (visited.find(startNode) != visited.end()){
+        return;
+    }else{
+        visited.insert(startNode);
+    }
+    for(auto edge: startNode->getInEdges()){
+        auto dstNode = edge->getSrcNode();
+        bool is_ind = edge->isCallIndirectVFGEdge() || edge->isIndirectVFGEdge() || edge->isRetIndirectVFGEdge();
+        if (hvfg->svfNode2hvfNode.find(dstNode) != hvfg->svfNode2hvfNode.end()){
+            uint32_t v = hvfg->svfNode2hvfNode.find(dstNode)->second;
+            if (is_ind){
+                hvfg->addEdge(v, u, json{{"type", "is_memory_flow"}, {"ord", inc++}});
+            }else{
+                hvfg->addEdge(v, u, json{{"type", "is_direct_flow"}, {"ord", inc++}});
+            }
+        }else{
+            get_dest_node(dstNode, u, inc, hvfg, visited);
+        }
+    }
+}
+
+void add_hvfg_edge(hvfg_ty* hvfg){
+    for(auto it:hvfg->nodes){
+        auto svfgnode = hvfg->hvfNode2svfNode[it.first];
+        int inc = 0;
+        unordered_set<VFGNode*> visited;
+        get_dest_node(svfgnode, it.first, inc, hvfg, visited);
+    }
+}
+
+void write_json_to_file(json& j, string output_path){
+    auto buf = json::to_bjdata(j);
+    std::ofstream outFile(output_path, std::ios::binary);
+    outFile.write(reinterpret_cast<char*>(buf.data()),
+                  sizeof(unsigned char) * buf.size());
+    outFile.close();
+}
+
 int main(int argc, char** argv) {
     char** arg_value = new char*[argc];
     std::vector<std::string> moduleNameVec;
@@ -801,7 +1188,24 @@ int main(int argc, char** argv) {
     SVFGBuilder svfBuilder(true);
     SVFG* svfg = svfBuilder.buildFullSVFG(ander);
 
-    build_hvfg_graph(svfg);
+    hvfg_ty* hvfg = svfg2hvfnode(svfg);
+    add_hvfg_edge(hvfg);
+    auto j = hvfg->dump();
+    write_json_to_file(j, Options::valueflow_graph_path());
+    /*TODO
+     * 1. handle global node
+     * 2. link branch/phi node
+     * 3. add ret node
+     * 4. add constant node
+     * 4. add type node
+     * 5. add name node
+     * 6. add label node
+     * 7. dump bbg
+     * 8. dump typeg
+     * 9. dump cg
+     * 10. handle ord
+     */
+    //build_hvfg_graph(svfg);
 //    dump_bb_graph(svfModule, svfg, Options::bb_graph_path());
 //    dump_valueflow_graph(svfg, Options::valueflow_graph_path());
 //    dump_call_graph(svfg, Options::call_graph_path());
