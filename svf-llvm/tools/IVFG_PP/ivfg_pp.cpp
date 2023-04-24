@@ -304,6 +304,9 @@ node_dict_type get_nodes_features(SVFG* svfg) {
             dict["mr_version"] = std::to_string(mr->getSSAVersion());
             dict["mr_size"] = std::to_string(mr->getMR()->getRegionSize());
         }
+        if (NodeTy(BranchVFGNode, node)){
+            `//TODO
+        }
         if (NodeTy(PHIVFGNode, node)) {
             dict["branch_num"] = std::to_string(ptr->getOpVerNum());
         }
