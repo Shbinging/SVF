@@ -961,6 +961,18 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
         auto node = svfg->getSVFGNode(i);
         if (node->getICFGNode()->getBB() == nullptr){
             //TODO
+            if (!node->getValue() || !SVFUtil::isa<SVFGlobalValue>(node->getValue())) continue;
+            json node_attr = json();
+            json attr = json();
+            node_attr["uid"] = uid++;
+            node_attr["type"] = "GN";
+            node_attr["data"] = "glob";
+            attr["inst_full"] = node->getValue()->toString();
+            attr["name"] = node->getValue()->getName();
+            node_attr["attr"] = attr;
+            hvfg->addNode(node_attr["uid"], node_attr);
+
+            hvfg->bind_svfNode(node, node_attr["uid"]);
         }else {
             auto var = getLHSTopLevPtr(node);
             if (var == nullptr || !var_has_val(var)) continue;
