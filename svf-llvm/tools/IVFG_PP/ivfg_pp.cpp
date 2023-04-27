@@ -1568,7 +1568,10 @@ void add_const_node(uint32_t node_idx, hvfg_ty* hvfg, uint32_t& uid){
         }
     }
     else if (ISA(IntraPHIVFGNode)){
-        //TODO
+        for(uint32_t i = 0; i < res->getOpVerNum(); i++){
+            json j = get_constant(var);
+            gen_const_node_then_add(node_idx, j, uid, hvfg);
+        }
     }
     else if (ISA(StmtVFGNode)){
         if (ISA(StoreVFGNode)) {
@@ -1645,6 +1648,47 @@ void add_name_node2hvfg(hvfg_ty* hvfg){
     }
 }
 
+void add_label_node(hvfg_ty* hvfg, uint32_t node_idx, string label_name, uint32_t& uid){
+    json node;
+    node["type"] = "LN";
+    node["uid"] = uid++;
+    node["data"] = label_name;
+    json node_attr;
+    node_attr["label_name"] = label_name;
+    node["attr"] = node_attr;
+    json edge;
+    edge["type"] = "label_use";
+    edge["ord"] = 0;
+    hvfg->addNode(node["uid"].get<uint32_t>(), node);
+    hvfg->addEdge(node["uid"].get<uint32_t>(), node_idx, edge);
+}
+
+void add_label_node2hvfg(hvfg_ty* hvfg){
+    uint32_t uid = hvfg->getNxNodeIdx();
+    for(auto node_idx : hvfg->getNodeIdxList()){
+        if (hvfg->is_inst_hvfgNode(node_idx)){
+            assert(hvfg->has_bind_svfgNode(node_idx));
+            auto node = hvfg->get_bind_svfgNode(node_idx);
+            if (ISA(BranchVFGNode)){
+                for(uint32_t i = 0; i < res->getBranchStmt()->getNumSuccessors(); i++){
+                    add_label_node(hvfg, node_idx, res->getBranchStmt()->getSuccessor(i)->getBB()->getName(), uid);
+                }
+            }
+            else if (ISA(IntraPHIVFGNode)){
+                if (SVFUtil::isa<SVFFunction>(res->getValue())) continue;
+                if (SVFUtil::isa<PhiStmt>(res->getICFGNode()->getSVFStmts().begin().operator*())) {
+                    const PhiStmt* phi = SVFUtil::cast<PhiStmt>(res->getICFGNode()->getSVFStmts().begin().operator*());
+                    for (uint32_t i = 0; i < phi->getOpVarNum(); i++) {
+                        add_label_node(
+                            hvfg, node_idx,
+                            phi->getOpICFGNode(i)->getBB()->getName(), uid);
+                    }
+                }
+            }
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     char** arg_value = new char*[argc];
     std::vector<std::string> moduleNameVec;
@@ -1675,17 +1719,17 @@ int main(int argc, char** argv) {
     typeg_ty* typeg = new typeg_ty();
     add_type_node2hvfg(hvfg, typeg);
     add_name_node2hvfg(hvfg);
-
+    add_label_node2hvfg(hvfg);
     auto j = hvfg->dump();
     write_json_to_file(j, Options::valueflow_graph_path());
     /*TODO
-     * 0. link node (ok)
+     * 0. link node (ok) huge link is out of time, need fix it
      * 1. handle globalNode(ok) globalNode is alloca something, it will use store to initialize
      * 2. add ret node (OK)
      * 3. add constant: current we don't deal with array/struct/global constant value(for initialize and operand) （OK）
      * 4. add type node (OK)
-     * 5. add name node
-     * 6. add label node
+     * 5. add name node (OK)
+     * 6. add label node (OK)
      * 7. dump bbg
      * 8. dump typeg
      * 9. dump cg
