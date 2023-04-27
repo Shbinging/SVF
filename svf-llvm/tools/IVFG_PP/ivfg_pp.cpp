@@ -1060,6 +1060,10 @@ public:
         return get_hvfgNode_type(idx) == "TVN";
     }
 
+    bool is_TN_hvfgNode(uint32_t idx){
+        return get_hvfgNode_type(idx) == "TN";
+    }
+
     bool is_inst_hvfgNode(uint32_t idx){
         if (!hasNode(idx)) return false;
         string typ = getNode(idx)["type"].get<string>();
@@ -1092,6 +1096,7 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
             node_attr["type"] = "GN";
             node_attr["data"] = "glob";
             attr["inst_full"] = node->getValue()->toString();
+            //name
             attr["name"] = node->getValue()->getName();
             //type
             attr["type_uid"] = Name(node->getValue()->getType());
@@ -1109,7 +1114,8 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
                 node_attr["uid"] = uid++;
                 node_attr["type"] = "MN";
                 node_attr["data"] = "MPHI";
-                attr["name"] = "mphi";
+                //name
+                attr["name"] = "";
 
                 node_attr["attr"] = attr;
 
@@ -1128,6 +1134,7 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
                 node_attr["data"] = "param";
                 //attr["type_uid"] = Name(res->getParam()->getType());
                 attr["inst_full"] = res->getParam()->getValue()->toString();
+                //name
                 attr["name"] = res->getParam()->getValue()->getName();
                 //Type
                 attr["type_uid"] = Name(res->getParam()->getType());
@@ -1170,6 +1177,7 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
                 node_attr["data"] = get_opcode(var);
                 //attr["type_uid"] = Name(var->getType());
                 attr["inst_full"] = var->getValue()->toString();
+                //name
                 attr["name"] = var->getValueName();
                 attr["op_code"] = get_opcode(var);
                 //Type
@@ -1207,7 +1215,10 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
                 node_attr["data"] = get_opcode(var);
                 attr["inst_full"] = var->getValue()->toString();
                 attr["op_code"] = get_opcode(var);
+                //type
                 attr["type_uid"] = Name(var->getType());
+                //name
+                attr["name"] = var->getValueName();
                 node_attr["attr"] = attr;
 
                 hvfg->addNode(node_attr["uid"].get<uint32_t>(), node_attr);
@@ -1215,6 +1226,7 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
                 hvfg->bind_svfNode(node, node_attr["uid"]);
             } else if (ISA(IntraPHIVFGNode)) {
                 if (SVFUtil::isa<SVFFunction>(var->getValue())){
+                    //ret node
                     json node_attr = json();
                     json attr = json();
                     node_attr["uid"] = uid++;
@@ -1240,6 +1252,8 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
                     attr["op_code"] = get_opcode(var);
                     //type
                     attr["type_uid"] = Name(var->getType());
+                    //name
+                    attr["name"] = var->getValueName();
                     node_attr["attr"] = attr;
 
 
@@ -1273,6 +1287,8 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
                     attr["op_code"] = get_opcode(var);
                     //type
                     attr["type_uid"] = Name(var->getType());
+                    //name
+                    attr["name"] = var->getValueName();
                     node_attr["attr"] = attr;
                 }
 
@@ -1605,11 +1621,30 @@ void add_type_node2hvfg(hvfg_ty* hvfg, typeg_ty* typeg){
 }
 
 void add_name_node2hvfg(hvfg_ty* hvfg){
-    uint32_t uid = hvfg->getNodeIdxList().size();
+    uint32_t uid = hvfg->getNxNodeIdx();
     for(auto node_idx : hvfg->getNodeIdxList()){
-
+        if (hvfg->is_inst_hvfgNode(node_idx) || hvfg->is_TN_hvfgNode(node_idx)){
+            assert(hvfg->getNode(node_idx).contains("attr"));
+            if (hvfg->getNode(node_idx)["attr"].contains("name")){
+                string name = hvfg->getNode(node_idx)["attr"]["name"];
+                if (name == "") continue;
+                json node;
+                node["type"] = "NDN";
+                node["uid"] = uid++;
+                node["data"] = name;
+                json node_attr;
+                node_attr["name"] = name;
+                node["attr"] = node_attr;
+                json edge;
+                edge["ord"] = 0;
+                edge["type"] = "name_use";
+                hvfg->addNode(node["uid"].get<uint32_t>(), node);
+                hvfg->addEdge(node["uid"].get<uint32_t>(), node_idx, edge);
+            }
+        }
     }
 }
+
 int main(int argc, char** argv) {
     char** arg_value = new char*[argc];
     std::vector<std::string> moduleNameVec;
@@ -1639,7 +1674,7 @@ int main(int argc, char** argv) {
     add_constant_node2hvfg(hvfg);
     typeg_ty* typeg = new typeg_ty();
     add_type_node2hvfg(hvfg, typeg);
-
+    add_name_node2hvfg(hvfg);
 
     auto j = hvfg->dump();
     write_json_to_file(j, Options::valueflow_graph_path());
