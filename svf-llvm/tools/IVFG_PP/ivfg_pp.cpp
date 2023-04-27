@@ -1048,6 +1048,20 @@ public:
         return getNode(idx)["type"].get<string>();
     }
 
+    void add_hvfgNode(uint32_t uid, string typ, string data, json attr){
+        json node;
+        node["type"] = typ;
+        node["uid"] = uid;
+        node["data"] = data;
+        node["attr"] = attr;
+        addNode(uid, node);
+    }
+
+    void add_inst_hvfgNode(uint32_t uid, string typ, string data, json attr, SVFGNode* svfgNode){
+        add_hvfgNode(uid, typ, data, attr);
+        bind_svfNode(svfgNode, uid);
+    }
+
     bool is_GN_hvfgNode(uint32_t idx){
         return get_hvfgNode_type(idx) == "GN";
     }
@@ -1074,6 +1088,7 @@ public:
         return get_hvfgNode_type(idx) == "CN";
     }
 
+
 private:
     hvfNode2svfNode_ty hvfNode2svfNode;
     svfNode2hvfNode_ty svfNode2hvfNode;
@@ -1090,21 +1105,12 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
             if (!node->getValue() || !SVFUtil::isa<SVFGlobalValue>(node->getValue())) continue;
             //FIXME(Deal with global)
             if (!SVFUtil::isa<AddrVFGNode>(node)) continue;
-            json node_attr = json();
-            json attr = json();
-            node_attr["uid"] = uid++;
-            node_attr["type"] = "GN";
-            node_attr["data"] = "glob";
-            attr["inst_full"] = node->getValue()->toString();
-            //name
-            attr["name"] = node->getValue()->getName();
-            //type
-            attr["type_uid"] = Name(node->getValue()->getType());
-
-
-            node_attr["attr"] = attr;
-            hvfg->addNode(node_attr["uid"].get<uint32_t>(), node_attr);
-            hvfg->bind_svfNode(node, node_attr["uid"]);
+            json attr = {
+                {"inst_full",node->getValue()->toString()},
+                {"name", node->getValue()->getName()},
+                {"type_uid", Name(node->getValue()->getType())}
+            };
+            hvfg->add_inst_hvfgNode(uid++, "GN", "glob", attr, node);
 
         }else {
             if (ISA(MSSAPHISVFGNode)) {
