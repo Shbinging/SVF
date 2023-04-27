@@ -1159,23 +1159,36 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
                 hvfg->bind_svfNode(node, node_attr["uid"]);
             } else if (ISA(IntraPHIVFGNode)) {
                 if (SVFUtil::isa<SVFFunction>(var->getValue())){
-                    continue;
+                    json node_attr = json();
+                    json attr = json();
+                    node_attr["uid"] = uid++;
+                    node_attr["type"] = "TVN";
+                    node_attr["data"] = "ret";
+                    attr["inst_full"] = res->getFun()->getExitBB()->getTerminator()->toString();
+                    attr["op_code"]  = "ret";
+                    node_attr["attr"] = attr;
+
+                    // cout << node_attr.dump() << "\n";
+
+                    hvfg->addNode(node_attr["uid"], node_attr);
+
+                    hvfg->bind_svfNode(node, node_attr["uid"]);
+                }else {
+                    json node_attr = json();
+                    json attr = json();
+                    node_attr["uid"] = uid++;
+                    node_attr["type"] = "TVN";
+                    node_attr["data"] = get_opcode(var);
+                    attr["inst_full"] = var->getValue()->toString();
+                    attr["op_code"] = get_opcode(var);
+                    node_attr["attr"] = attr;
+
+                    // cout << node_attr.dump() << "\n";
+
+                    hvfg->addNode(node_attr["uid"], node_attr);
+
+                    hvfg->bind_svfNode(node, node_attr["uid"]);
                 }
-                json node_attr = json();
-                json attr = json();
-                node_attr["uid"] = uid++;
-                node_attr["type"] = "TVN";
-                node_attr["data"] = get_opcode(var);
-                attr["inst_full"] = var->getValue()->toString();
-                attr["op_code"] = get_opcode(var);
-                node_attr["attr"] = attr;
-
-
-                //cout << node_attr.dump() << "\n";
-
-                hvfg->addNode(node_attr["uid"], node_attr);
-
-                hvfg->bind_svfNode(node, node_attr["uid"]);
             } else if (ISA(StmtVFGNode)) {
                 if (SVFUtil::isa<SVFCallInst>(res->getInst())) continue;
                 json node_attr = json();
@@ -1446,6 +1459,16 @@ void link_hvfg(SVFG* svfg, hvfg_ty* hvfg){
     }
 }
 
+
+void link_branch_phi_node(SVFG* svfg, hvfg_ty* hvfg){
+    for(auto node_idx : hvfg->getNodeIdxList()){
+        auto svfg_node = hvfg->get_bind_svfgNode(node_idx);
+        if (const IntraPHIVFGNode* res = SVFUtil::dyn_cast<IntraPHIVFGNode>(svfg_node)){
+            //printf("ok");
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     char** arg_value = new char*[argc];
     std::vector<std::string> moduleNameVec;
@@ -1472,6 +1495,7 @@ int main(int argc, char** argv) {
 
     hvfg_ty* hvfg = svfg2hvfnode(svfg);
     link_hvfg(svfg, hvfg);
+    //link_branch_phi_node(svfg, hvfg);
     auto j = hvfg->dump();
     write_json_to_file(j, Options::valueflow_graph_path());
 //    for(auto it:(*svfg)){
@@ -1497,11 +1521,10 @@ int main(int argc, char** argv) {
     //auto j = hvfg->dump();
     //write_json_to_file(j, Options::valueflow_graph_path());
     /*TODO
-     * 0. link node(TODO)
+     * 0. link node (ok)
      * 1. handle global node (OK)
-     * 2. link branch/phi node
-     * 3. add ret node
-     * 4. add constant node
+     * 2. add ret node (later)
+     * 3. add constant
      * 4. add type node
      * 5. add name node
      * 6. add label node
