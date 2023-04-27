@@ -751,13 +751,39 @@ string get_opcode(const SVFVar* LVar){
     return std::string(ins->getOpcodeName());
 }
 
-struct pair_hash
-{
+#include <functional>
+// from boost (functional/hash):
+// see http://www.boost.org/doc/libs/1_35_0/doc/html/hash/combine.html template
+template <typename T>
+inline void hash_combine(std::size_t &seed, const T &val) {
+    seed ^= std::hash<T>()(val) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+// auxiliary generic functions to create a hash value using a seed
+template <typename T> inline void hash_val(std::size_t &seed, const T &val) {
+    hash_combine(seed, val);
+}
+template <typename T, typename... Types>
+inline void hash_val(std::size_t &seed, const T &val, const Types &... args) {
+    hash_combine(seed, val);
+    hash_val(seed, args...);
+}
+
+template <typename... Types>
+inline std::size_t hash_val(const Types &... args) {
+    std::size_t seed = 0;
+    hash_val(seed, args...);
+    return seed;
+}
+
+struct pair_hash {
     template <class T1, class T2>
-    std::size_t operator() (const std::pair<T1, T2> &pair) const {
-        return std::hash<T1>()(pair.first) ^ std::hash<T2>()(pair.second);
+    std::size_t operator()(const std::pair<T1, T2> &p) const {
+        return hash_val(p.first, p.second);
     }
 };
+
+
+
 
 template<class IdxTy, class NodeTy, class EdgeTy>
 class graph {
@@ -765,22 +791,57 @@ public:
     static size_t hash_function(const pair<IdxTy, IdxTy>& key){
         return Name(key.first) + Name(key.second);
     }
+
     unordered_map<pair<IdxTy, IdxTy>, EdgeTy, pair_hash> edges;
     unordered_map<IdxTy, NodeTy> nodes;
     unordered_map<IdxTy, vector<IdxTy>> succ, pred;
+
+
+    const vector<IdxTy> getNodeIdxList(){
+        auto res = vector<IdxTy>();
+        for(auto iter:nodes){
+            res.push_back(iter.first);
+        }
+        return res;
+    }
+
+    const NodeTy getNode(IdxTy idx){
+        assert(hasNode(idx));
+        return nodes[idx];
+    }
+
+    bool hasEdge(IdxTy src, IdxTy dst){
+        return edges.find(make_pair(src, dst)) != edges.end();
+    }
+
+    const vector<IdxTy> get_pred(IdxTy node){
+        assert(hasNode(node));
+        return pred[node];
+    }
+
+    const vector<IdxTy> get_succ(IdxTy node){
+        assert(hasNode(node));
+        return succ[node];
+    }
+
     bool hasNode(IdxTy idx){
         return nodes.find(idx) != nodes.end();
     }
+
     void addNode(IdxTy idx , NodeTy node){
-        nodes[idx] = node;
-        succ[idx] = vector<IdxTy>();
-        pred[idx] = vector<IdxTy>();
+        if (!hasNode(idx)) {
+            nodes[idx] = node;
+            succ[idx] = vector<IdxTy>();
+            pred[idx] = vector<IdxTy>();
+        }
     }
+
     void addEdge(IdxTy src, IdxTy dest, EdgeTy edge){
         edges[make_pair(src, dest)] = edge;
         succ[src].push_back(dest);
         pred[dest].push_back(src);
     }
+
     uint64_t getNodeId(IdxTy idx){
         return Name(idx);
     }
@@ -944,13 +1005,37 @@ class hvfg_ty:public graph<uint32_t, json, json> {
 public:
     typedef unordered_map<SVFGNode*, uint32_t> svfNode2hvfNode_ty;
     typedef unordered_map<uint32_t, SVFGNode*> hvfNode2svfNode_ty;
-    hvfNode2svfNode_ty hvfNode2svfNode;
-    svfNode2hvfNode_ty svfNode2hvfNode;
+    typedef uint32_t nodeIdx_ty;
 
     void bind_svfNode(SVFGNode* svfNode, uint32_t hvfNode){
         hvfNode2svfNode[hvfNode] = svfNode;
         svfNode2hvfNode[svfNode] = hvfNode;
     }
+
+    bool is_use_svfgnode(SVFGNode* svfgNode){
+        return svfNode2hvfNode.find(svfgNode) != svfNode2hvfNode.end();
+    }
+
+    nodeIdx_ty get_svfgnode2_hvfgNode(SVFGNode* svfgNode){
+        assert(is_use_svfgnode(svfgNode));
+        return svfNode2hvfNode[svfgNode];
+    }
+
+    bool has_bind_svfgNode(nodeIdx_ty hvfgNode){
+        return hvfNode2svfNode.find(hvfgNode) != hvfNode2svfNode.end();
+    }
+
+    const SVFGNode* get_bind_svfgNode(uint32_t hvfgNode){
+        assert(has_bind_svfgNode(hvfgNode));
+        return hvfNode2svfNode[hvfgNode];
+    }
+
+    uint32_t get_bind_svfgNode_id(uint32_t hvfgNode){
+        return get_bind_svfgNode(hvfgNode)->getId();
+    }
+private:
+    hvfNode2svfNode_ty hvfNode2svfNode;
+    svfNode2hvfNode_ty svfNode2hvfNode;
 };
 
 hvfg_ty* svfg2hvfnode(SVFG* svfg){
@@ -974,6 +1059,22 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
 
             hvfg->bind_svfNode(node, node_attr["uid"]);
         }else {
+            if (ISA(MSSAPHISVFGNode)) {
+                //FIXME::need test
+                json node_attr = json();
+                json attr = json();
+                node_attr["uid"] = uid++;
+                node_attr["type"] = "MN";
+                node_attr["data"] = "MPHI";
+                attr["name"] = "mphi";
+
+                node_attr["attr"] = attr;
+                //cout << node_attr.dump() << "\n";
+
+                hvfg->addNode(node_attr["uid"], node_attr);
+
+                hvfg->bind_svfNode(node, node_attr["uid"]);
+            }
             auto var = getLHSTopLevPtr(node);
             if (var == nullptr || !var_has_val(var)) continue;
             if (ISA(FormalParmVFGNode)) {
@@ -1056,20 +1157,6 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
                 hvfg->addNode(node_attr["uid"], node_attr);
 
                 hvfg->bind_svfNode(node, node_attr["uid"]);
-            } else if (ISA(MSSAPHISVFGNode)) {
-                //FIXME::need test
-                json node_attr = json();
-                json attr = json();
-                node_attr["uid"] = uid++;
-                node_attr["type"] = "MN";
-                node_attr["data"] = "MPHI";
-                node_attr["attr"] = attr;
-
-                //cout << node_attr.dump() << "\n";
-
-                hvfg->addNode(node_attr["uid"], node_attr);
-
-                hvfg->bind_svfNode(node, node_attr["uid"]);
             } else if (ISA(IntraPHIVFGNode)) {
                 if (SVFUtil::isa<SVFFunction>(var->getValue())){
                     continue;
@@ -1137,36 +1224,36 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
     return hvfg;
 }
 
-void get_dest_node(VFGNode* startNode, uint32_t u, int& inc, hvfg_ty* hvfg, unordered_set<VFGNode*>& visited){
-    if (visited.find(startNode) != visited.end()){
-        return;
-    }else{
-        visited.insert(startNode);
-    }
-    for(auto edge: startNode->getInEdges()){
-        auto dstNode = edge->getSrcNode();
-        bool is_ind = edge->isCallIndirectVFGEdge() || edge->isIndirectVFGEdge() || edge->isRetIndirectVFGEdge();
-        if (hvfg->svfNode2hvfNode.find(dstNode) != hvfg->svfNode2hvfNode.end()){
-            uint32_t v = hvfg->svfNode2hvfNode.find(dstNode)->second;
-            if (is_ind){
-                hvfg->addEdge(v, u, json{{"type", "is_memory_flow"}, {"ord", inc++}});
-            }else{
-                hvfg->addEdge(v, u, json{{"type", "is_direct_flow"}, {"ord", inc++}});
-            }
-        }else{
-            get_dest_node(dstNode, u, inc, hvfg, visited);
-        }
-    }
-}
+//void get_dest_node(VFGNode* startNode, uint32_t u, int& inc, hvfg_ty* hvfg, unordered_set<VFGNode*>& visited){
+//    if (visited.find(startNode) != visited.end()){
+//        return;
+//    }else{
+//        visited.insert(startNode);
+//    }
+//    for(auto edge: startNode->getInEdges()){
+//        auto dstNode = edge->getSrcNode();
+//        bool is_ind = edge->isCallIndirectVFGEdge() || edge->isIndirectVFGEdge() || edge->isRetIndirectVFGEdge();
+//        if (hvfg->svfNode2hvfNode.find(dstNode) != hvfg->svfNode2hvfNode.end()){
+//            uint32_t v = hvfg->svfNode2hvfNode.find(dstNode)->second;
+//            if (is_ind){
+//                hvfg->addEdge(v, u, json{{"type", "is_memory_flow"}, {"ord", inc++}});
+//            }else{
+//                hvfg->addEdge(v, u, json{{"type", "is_direct_flow"}, {"ord", inc++}});
+//            }
+//        }else{
+//            get_dest_node(dstNode, u, inc, hvfg, visited);
+//        }
+//    }
+//}
 
-void add_hvfg_edge(hvfg_ty* hvfg){
-    for(auto it:hvfg->nodes){
-        auto svfgnode = hvfg->hvfNode2svfNode[it.first];
-        int inc = 0;
-        unordered_set<VFGNode*> visited;
-        get_dest_node(svfgnode, it.first, inc, hvfg, visited);
-    }
-}
+//void add_hvfg_edge(hvfg_ty* hvfg){
+//    for(auto it:hvfg->nodes){
+//        auto svfgnode = hvfg->hvfNode2svfNode[it.first];
+//        int inc = 0;
+//        unordered_set<VFGNode*> visited;
+//        get_dest_node(svfgnode, it.first, inc, hvfg, visited);
+//    }
+//}
 
 void write_json_to_file(json& j, string output_path){
     auto buf = json::to_bjdata(j);
@@ -1174,6 +1261,189 @@ void write_json_to_file(json& j, string output_path){
     outFile.write(reinterpret_cast<char*>(buf.data()),
                   sizeof(unsigned char) * buf.size());
     outFile.close();
+}
+
+
+template<class IdxTy, class NodeTy, class EdgeTy>
+class del_graph {
+private:
+    unordered_map<IdxTy, unordered_map<IdxTy, EdgeTy>> edges;
+    //unordered_map<pair<IdxTy, IdxTy>, EdgeTy, pair_hash> edges;
+    unordered_map<IdxTy, NodeTy> nodes;
+    unordered_map<IdxTy, unordered_set<IdxTy>> succ, pred;
+public:
+    static size_t hash_function(const pair<IdxTy, IdxTy>& key){
+        return Name(key.first) + Name(key.second);
+    }
+    bool hasNode(IdxTy idx){
+        return nodes.find(idx) != nodes.end();
+    }
+
+    bool hasEdge(IdxTy src, IdxTy dst){
+        return edges.find(src) != edges.end() && (edges[src].find(dst) != edges[src].end());
+    }
+    int totalEdge(){
+        int s = 0;
+        for(auto idx: getNodeIdxList()){
+            s += succ[idx].size();
+        }
+        return s;
+    }
+    const vector<IdxTy> getNodeIdxList(){
+        auto res = vector<IdxTy>();
+        for(auto iter:nodes){
+            res.push_back(iter.first);
+        }
+        return res;
+    }
+
+    const NodeTy getNode(IdxTy idx){
+        assert(hasNode(idx));
+        return nodes[idx];
+    }
+
+    EdgeTy getEdge(IdxTy src, IdxTy dst){
+        assert(hasEdge(src, dst));
+        return edges[src][dst];
+    }
+
+    void addNode(IdxTy idx , NodeTy node){
+        if (!hasNode(idx)){
+            nodes[idx] = node;
+            succ[idx] = unordered_set<IdxTy>();
+            pred[idx] = unordered_set<IdxTy>();
+            edges[idx] = unordered_map<IdxTy, EdgeTy>();
+        }
+    }
+
+    void addEdge(IdxTy src, IdxTy dest, EdgeTy edge){
+        assert(hasNode(src) && hasNode(dest));
+        if (!hasEdge(src, dest)) {
+            assert(succ[src].find(dest) == succ[src].end());
+            assert(pred[dest].find(src) == pred[dest].end());
+            edges[src][dest] = edge;
+            succ[src].insert(dest);
+            pred[dest].insert(src);
+        }
+    }
+
+    uint64_t getNodeId(IdxTy idx){
+        return Name(idx);
+    }
+
+    void del_node(IdxTy idx){
+        assert(hasNode(idx));
+        nodes.erase(idx);
+        for(auto dst: succ[idx]){
+            pred[dst].erase(idx);
+            edges[idx].erase(dst);
+        }
+        for(auto src: pred[idx]){
+            succ[src].erase(idx);
+            edges[src].erase(idx);
+        }
+    }
+
+    void del_edge(IdxTy src, IdxTy dst){
+        assert(hasEdge(src, dst));
+        edges[src].erase(dst);
+        succ[src].erase(dst);
+        pred[dst].erase(src);
+    }
+
+    const unordered_set<IdxTy> get_pred(IdxTy node){
+        assert(hasNode(node));
+        return pred[node];
+    }
+
+    const unordered_set<IdxTy> get_succ(IdxTy node){
+        assert(hasNode(node));
+        return succ[node];
+    }
+};
+
+class shrink_svfg_ty:public del_graph<uint32_t, bool, bool>{
+private:
+    unordered_map<uint32_t, SVFGNode *> shrink2svfg_node;
+    SVFG* svfg_back;
+public:
+    SVFGNode *get_bind_svfgNode(uint32_t node_idx){
+        assert(shrink2svfg_node.find(node_idx) != shrink2svfg_node.end());
+        return  shrink2svfg_node[node_idx];
+    }
+
+    void build_graph_from_svfg(SVFG* svfg, hvfg_ty* hvfg){
+        svfg_back = svfg;
+        for(uint32_t i = 0; i < svfg->getSVFGNodeNum(); i++){
+            auto node = svfg->getSVFGNode(i);
+            uint32_t node_id = node->getId();
+            shrink2svfg_node[node_id] = node;
+            bool notDel = 0;
+            addNode(node_id, hvfg->is_use_svfgnode(node) || notDel);
+        }
+        for(uint32_t i = 0; i < svfg->getSVFGNodeNum(); i++){
+            auto node = svfg->getSVFGNode(i);
+            uint32_t node_id = node->getId();
+            for(auto edge:node->getInEdges()){
+                auto pre = edge->getSrcNode();
+                uint32_t pre_id = pre->getId();
+                bool is_ind = edge->isRetIndirectVFGEdge() || edge->isIndirectVFGEdge() || edge->isCallIndirectVFGEdge();
+                addEdge(pre_id, node_id, is_ind);
+            }
+        }
+    }
+
+    void rm_DEL_node(){
+        int s = 0;
+        for(auto node_idx: getNodeIdxList()){
+            if (!getNode(node_idx)){
+                flush(cout);
+                int ss = get_succ(node_idx).size() * get_pred(node_idx).size();
+                s += ss;
+                //FIXME::we should del these nodes in the feature
+                //continue;
+                if (ss > 10000){
+                    continue;
+                }
+                auto succ = get_succ(node_idx);
+                for(auto pre: get_pred(node_idx)){
+                    bool edge1_ty = getEdge(pre, node_idx);
+                    for(auto nxt: succ){
+                        bool edge2_ty = getEdge(node_idx, nxt);
+                        if (pre != nxt) addEdge(pre, nxt, edge1_ty | edge2_ty);
+                    }
+                }
+                del_node(node_idx);
+            }
+        }
+//        printf("total edge %d\n", s);
+    }
+};
+
+void link_hvfg(SVFG* svfg, hvfg_ty* hvfg){
+    shrink_svfg_ty* shrink_svfg = new shrink_svfg_ty();
+    shrink_svfg->build_graph_from_svfg(svfg, hvfg);
+    shrink_svfg->rm_DEL_node();
+    for(auto node_idx:hvfg->getNodeIdxList()){
+        if (!hvfg->has_bind_svfgNode(node_idx)) continue;
+        auto svfg_node_idx = hvfg->get_bind_svfgNode_id(node_idx);
+        int ord = 1;
+        for(auto pre_node_idx : shrink_svfg->get_pred(svfg_node_idx)){
+            auto svfg_node = shrink_svfg->get_bind_svfgNode(pre_node_idx);
+            //FIXME:: we should del these nodes in the feature
+            if (!hvfg->is_use_svfgnode(svfg_node)) continue;
+
+            assert(hvfg->is_use_svfgnode(svfg_node));
+            bool is_ind = shrink_svfg->getEdge(pre_node_idx, svfg_node_idx);
+
+            auto pre_idx = hvfg->get_svfgnode2_hvfgNode(svfg_node);
+            if (is_ind){
+                hvfg->addEdge(pre_idx, node_idx, json({{"type", "memory_use"}, {"ord", 0}}));
+            }else{
+                hvfg->addEdge(pre_idx, node_idx, json({{"type", "top_use"}, {"ord", ord++}}));
+            }
+        }
+    }
 }
 
 int main(int argc, char** argv) {
@@ -1201,11 +1471,34 @@ int main(int argc, char** argv) {
     SVFG* svfg = svfBuilder.buildFullSVFG(ander);
 
     hvfg_ty* hvfg = svfg2hvfnode(svfg);
-    add_hvfg_edge(hvfg);
+    link_hvfg(svfg, hvfg);
     auto j = hvfg->dump();
     write_json_to_file(j, Options::valueflow_graph_path());
+//    for(auto it:(*svfg)){
+//        auto node = it.second;
+//        if (hvfg->svfNode2hvfNode.find(node) == hvfg->svfNode2hvfNode.end()){
+//            bool has = 0;
+//            if (node->getICFGNode()->getBB() == nullptr) continue;
+//            for(auto in_edge:node->getInEdges()){
+//                for(auto out_edge:node->getOutEdges()){
+//                    bool in_is_ind = in_edge->isCallIndirectVFGEdge() || in_edge->isIndirectVFGEdge() || in_edge->isRetIndirectVFGEdge();
+//                    bool out_is_ind = out_edge->isCallIndirectVFGEdge() || out_edge->isIndirectVFGEdge() || out_edge->isRetIndirectVFGEdge();
+//                    if (out_is_ind != in_is_ind){
+//                        has = 1;
+//                    }
+//                }
+//            }
+//            if (has){
+//                cout << node->getValue()->toString() << endl;
+//            }
+//        }
+//    }
+    //add_hvfg_edge(hvfg);
+    //auto j = hvfg->dump();
+    //write_json_to_file(j, Options::valueflow_graph_path());
     /*TODO
-     * 1. handle global node
+     * 0. link node(TODO)
+     * 1. handle global node (OK)
      * 2. link branch/phi node
      * 3. add ret node
      * 4. add constant node
