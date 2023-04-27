@@ -1047,6 +1047,8 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
         if (node->getICFGNode()->getBB() == nullptr){
             //TODO
             if (!node->getValue() || !SVFUtil::isa<SVFGlobalValue>(node->getValue())) continue;
+            //FIXME(Deal with global)
+            if (!SVFUtil::isa<AddrVFGNode>(node)) continue;
             json node_attr = json();
             json attr = json();
             node_attr["uid"] = uid++;
@@ -1056,8 +1058,10 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
             attr["name"] = node->getValue()->getName();
             node_attr["attr"] = attr;
             hvfg->addNode(node_attr["uid"], node_attr);
-
             hvfg->bind_svfNode(node, node_attr["uid"]);
+            //handle constant
+            //TODO::current we don't deal with global variable's constant value
+
         }else {
             if (ISA(MSSAPHISVFGNode)) {
                 //FIXME::need test
@@ -1093,6 +1097,12 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
                 //typeg->dfs_type(res->getParam()->getType());
                 //inst_or_param2hvfg[Name(res->getParam()->getValue())] = uid;
                 hvfg->bind_svfNode(node, node_attr["uid"]);
+
+                //handle constant
+                for(auto edge:res->getInEdges()){
+                    auto actual_param = edge->getSrcNode();
+                    assert(SVFUtil::isa<ActualParmVFGNode>(actual_param));
+                }
             } else if (ISA(ActualRetVFGNode)) {
                 json node_attr = json();
                 json attr = json();
@@ -1190,7 +1200,10 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
                     hvfg->bind_svfNode(node, node_attr["uid"]);
                 }
             } else if (ISA(StmtVFGNode)) {
-                if (SVFUtil::isa<SVFCallInst>(res->getInst())) continue;
+                //FIXME(Deal with GLobal)
+                if (SVFUtil::isa<SVFCallInst>(res->getInst())){
+                    continue;
+                }
                 json node_attr = json();
                 json attr = json();
                 node_attr["uid"] = uid++;
@@ -1237,36 +1250,6 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
     return hvfg;
 }
 
-//void get_dest_node(VFGNode* startNode, uint32_t u, int& inc, hvfg_ty* hvfg, unordered_set<VFGNode*>& visited){
-//    if (visited.find(startNode) != visited.end()){
-//        return;
-//    }else{
-//        visited.insert(startNode);
-//    }
-//    for(auto edge: startNode->getInEdges()){
-//        auto dstNode = edge->getSrcNode();
-//        bool is_ind = edge->isCallIndirectVFGEdge() || edge->isIndirectVFGEdge() || edge->isRetIndirectVFGEdge();
-//        if (hvfg->svfNode2hvfNode.find(dstNode) != hvfg->svfNode2hvfNode.end()){
-//            uint32_t v = hvfg->svfNode2hvfNode.find(dstNode)->second;
-//            if (is_ind){
-//                hvfg->addEdge(v, u, json{{"type", "is_memory_flow"}, {"ord", inc++}});
-//            }else{
-//                hvfg->addEdge(v, u, json{{"type", "is_direct_flow"}, {"ord", inc++}});
-//            }
-//        }else{
-//            get_dest_node(dstNode, u, inc, hvfg, visited);
-//        }
-//    }
-//}
-
-//void add_hvfg_edge(hvfg_ty* hvfg){
-//    for(auto it:hvfg->nodes){
-//        auto svfgnode = hvfg->hvfNode2svfNode[it.first];
-//        int inc = 0;
-//        unordered_set<VFGNode*> visited;
-//        get_dest_node(svfgnode, it.first, inc, hvfg, visited);
-//    }
-//}
 
 void write_json_to_file(json& j, string output_path){
     auto buf = json::to_bjdata(j);
@@ -1459,16 +1442,6 @@ void link_hvfg(SVFG* svfg, hvfg_ty* hvfg){
     }
 }
 
-
-void link_branch_phi_node(SVFG* svfg, hvfg_ty* hvfg){
-    for(auto node_idx : hvfg->getNodeIdxList()){
-        auto svfg_node = hvfg->get_bind_svfgNode(node_idx);
-        if (const IntraPHIVFGNode* res = SVFUtil::dyn_cast<IntraPHIVFGNode>(svfg_node)){
-            //printf("ok");
-        }
-    }
-}
-
 int main(int argc, char** argv) {
     char** arg_value = new char*[argc];
     std::vector<std::string> moduleNameVec;
@@ -1522,9 +1495,9 @@ int main(int argc, char** argv) {
     //write_json_to_file(j, Options::valueflow_graph_path());
     /*TODO
      * 0. link node (ok)
-     * 1. handle global node (OK)
-     * 2. add ret node (later)
-     * 3. add constant
+     * 1. handle globalNode(ok) globalNode is alloca something, it will use store to initialize
+     * 2. add ret node (OK)
+     * 3. add constant: current we don't deal with array/struct/global constant value(for initialize and operand)
      * 4. add type node
      * 5. add name node
      * 6. add label node
@@ -1532,6 +1505,9 @@ int main(int argc, char** argv) {
      * 8. dump typeg
      * 9. dump cg
      * 10. handle ord
+     * 11. handle global constant
+     * outside BB, we should retain alloca global
+     * inside BB, we should retain getelementptr, llvm memcpy(this enable init variable use global)
      */
     //build_hvfg_graph(svfg);
 //    dump_bb_graph(svfModule, svfg, Options::bb_graph_path());
