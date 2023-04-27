@@ -1114,158 +1114,76 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
 
         }else {
             if (ISA(MSSAPHISVFGNode)) {
-                //FIXME::need test
                 json node_attr = json();
-                json attr = json();
-                node_attr["uid"] = uid++;
-                node_attr["type"] = "MN";
-                node_attr["data"] = "MPHI";
-                //name
-                attr["name"] = "";
-
-                node_attr["attr"] = attr;
-
-                hvfg->addNode(node_attr["uid"].get<uint32_t>(), node_attr);
-
-                hvfg->bind_svfNode(node, node_attr["uid"]);
+                json attr = {
+                    {"name", ""}
+                };
+                hvfg->add_inst_hvfgNode(uid++, "MN", "MPHI", attr, node);
             }
             auto var = getLHSTopLevPtr(node);
             if (var == nullptr || !var_has_val(var)) continue;
             if (ISA(FormalParmVFGNode)) {
                 if (res->getParam() == nullptr) continue;
-                json node_attr = json();
                 json attr = json();
-                node_attr["uid"] = uid++;
-                node_attr["type"] = "TVN";
-                node_attr["data"] = "param";
-                //attr["type_uid"] = Name(res->getParam()->getType());
                 attr["inst_full"] = res->getParam()->getValue()->toString();
-                //name
                 attr["name"] = res->getParam()->getValue()->getName();
-                //Type
                 attr["type_uid"] = Name(res->getParam()->getType());
+                hvfg->add_inst_hvfgNode(uid++, "TVN", "param", attr, node);
 
-                node_attr["attr"] = attr;
-                hvfg->addNode(node_attr["uid"].get<uint32_t>(), node_attr);
-
-                //typeg->dfs_type(res->getParam()->getType());
-                //inst_or_param2hvfg[Name(res->getParam()->getValue())] = uid;
-                hvfg->bind_svfNode(node, node_attr["uid"]);
-
-                //handle constant
-                for(auto edge:res->getInEdges()){
-                    auto actual_param = edge->getSrcNode();
-                    assert(SVFUtil::isa<ActualParmVFGNode>(actual_param));
-                }
             } else if (ISA(ActualRetVFGNode)) {
-                json node_attr = json();
                 json attr = json();
-                node_attr["uid"] = uid++;
-                node_attr["type"] = "TVN";
-                node_attr["data"] = "call";
-                //attr["type_uid"] = Name(var->getType());
                 attr["inst_full"] = var->getValue()->toString();
-                //attr["func_type_uid"] = Name(res->getCaller()->getType());
+                //name
                 attr["name"] = var->getValueName();
                 //Type
                 attr["type_uid"] = Name(var->getType());
+                hvfg->add_inst_hvfgNode(uid++, "TVN", "call", attr, node);
 
-                node_attr["attr"] = attr;
-                hvfg->addNode(node_attr["uid"].get<uint32_t>(), node_attr);
-
-                //inst_or_param2hvfg[Name(var->getValue())] = uid;
-                hvfg->bind_svfNode(node, node_attr["uid"]);
             } else if (ISA(BinaryOPVFGNode)) {
-                json node_attr = json();
                 json attr = json();
-                node_attr["uid"] = uid++;
-                node_attr["type"] = "TVN";
-                node_attr["data"] = get_opcode(var);
-                //attr["type_uid"] = Name(var->getType());
                 attr["inst_full"] = var->getValue()->toString();
                 //name
                 attr["name"] = var->getValueName();
                 attr["op_code"] = get_opcode(var);
                 //Type
                 attr["type_uid"] = Name(var->getType());
+                hvfg->add_inst_hvfgNode(uid++, "TVN", get_opcode(var), attr, node);
 
-                node_attr["attr"] = attr;
-                hvfg->addNode(node_attr["uid"].get<uint32_t>(), node_attr);
-
-                //inst_or_param2hvfg[Name(var->getValue())] = uid;
-                hvfg->bind_svfNode(node, node_attr["uid"]);
             } else if (ISA(BranchVFGNode)) {
-                json node_attr = json();
                 json attr = json();
-                node_attr["uid"] = uid++;
-                node_attr["type"] = "TVN";
-                node_attr["data"] = get_opcode(var);
                 attr["inst_full"] = var->getValue()->toString();
                 attr["op_code"] = get_opcode(var);
-//                vector<string> label_list;
-//                for(uint32_t i = 0; i < res->getBranchStmt()->getNumSuccessors(); i++){
-//                    label_list.push_back(res->getBranchStmt()->getSuccessor(i)->getBB()->getName());
-//                }
-//                attr["label_list"] = label_list;
-                node_attr["attr"] = attr;
+                hvfg->add_inst_hvfgNode(uid++, "TVN", get_opcode(var), attr, node);
 
-                //cout << node_attr.dump() << "\n";
-                hvfg->addNode(node_attr["uid"].get<uint32_t>(), node_attr);
-
-                hvfg->bind_svfNode(node, node_attr["uid"]);
             } else if (ISA(CmpVFGNode)) {
-                json node_attr = json();
                 json attr = json();
-                node_attr["uid"] = uid++;
-                node_attr["type"] = "TVN";
-                node_attr["data"] = get_opcode(var);
                 attr["inst_full"] = var->getValue()->toString();
                 attr["op_code"] = get_opcode(var);
                 //type
                 attr["type_uid"] = Name(var->getType());
                 //name
                 attr["name"] = var->getValueName();
-                node_attr["attr"] = attr;
+                hvfg->add_inst_hvfgNode(uid++, "TVN", get_opcode(var), attr, node);
 
-                hvfg->addNode(node_attr["uid"].get<uint32_t>(), node_attr);
-
-                hvfg->bind_svfNode(node, node_attr["uid"]);
             } else if (ISA(IntraPHIVFGNode)) {
                 if (SVFUtil::isa<SVFFunction>(var->getValue())){
                     //ret node
-                    json node_attr = json();
                     json attr = json();
-                    node_attr["uid"] = uid++;
-                    node_attr["type"] = "TVN";
-                    node_attr["data"] = "ret";
                     attr["inst_full"] = res->getFun()->getExitBB()->getTerminator()->toString();
                     attr["op_code"]  = "ret";
                     //type
                     attr["type_uid"] = Name(res->getFun()->getReturnType());
-                    node_attr["attr"] = attr;
+                    hvfg->add_inst_hvfgNode(uid++, "TVN", "RET", attr, node);
 
-
-                    hvfg->addNode(node_attr["uid"].get<uint32_t>(), node_attr);
-
-                    hvfg->bind_svfNode(node, node_attr["uid"]);
                 }else {
-                    json node_attr = json();
                     json attr = json();
-                    node_attr["uid"] = uid++;
-                    node_attr["type"] = "TVN";
-                    node_attr["data"] = get_opcode(var);
                     attr["inst_full"] = var->getValue()->toString();
                     attr["op_code"] = get_opcode(var);
                     //type
                     attr["type_uid"] = Name(var->getType());
                     //name
                     attr["name"] = var->getValueName();
-                    node_attr["attr"] = attr;
-
-
-                    hvfg->addNode(node_attr["uid"].get<uint32_t>(), node_attr);
-
-                    hvfg->bind_svfNode(node, node_attr["uid"]);
+                    hvfg->add_inst_hvfgNode(uid++, "TVN", get_opcode(var), attr, node);
                 }
             } else if (ISA(StmtVFGNode)) {
                 //FIXME(Deal with GLobal)
@@ -1303,20 +1221,13 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
 
                 hvfg->bind_svfNode(node, node_attr["uid"]);
             } else if (ISA(UnaryOPVFGNode)) {
-                json node_attr = json();
                 json attr = json();
-                node_attr["uid"] = uid++;
-                node_attr["type"] = "TVN";
-                node_attr["data"] = get_opcode(var);
                 attr["inst_full"] = var->getValue()->toString();
                 attr["name"] = var->getValueName();
                 attr["op_code"] = get_opcode(var);
                 //type
                 attr["type_uid"] = Name(var->getType());
-                node_attr["attr"] = attr;
-                hvfg->addNode(node_attr["uid"].get<uint32_t>(), node_attr);
-
-                hvfg->bind_svfNode(node, node_attr["uid"]);
+                hvfg->add_inst_hvfgNode(uid++, "TVN", get_opcode(var), attr, node);
             }
         }
     }
@@ -1553,6 +1464,11 @@ void add_const_node(uint32_t node_idx, hvfg_ty* hvfg, uint32_t& uid){
     auto var = getLHSTopLevPtr(node);
     if (ISA(FormalParmVFGNode)){
         //TODO
+        //handle constant
+        for(auto edge:res->getInEdges()){
+            auto actual_param = edge->getSrcNode();
+            assert(SVFUtil::isa<ActualParmVFGNode>(actual_param));
+        }
     }
     else if (ISA(ActualRetVFGNode)){
         json j = get_constant(res->getRev());
