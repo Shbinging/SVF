@@ -752,8 +752,6 @@ string get_opcode(const SVFVar* LVar){
 }
 
 #include <functional>
-// from boost (functional/hash):
-// see http://www.boost.org/doc/libs/1_35_0/doc/html/hash/combine.html template
 template <typename T>
 inline void hash_combine(std::size_t &seed, const T &val) {
     seed ^= std::hash<T>()(val) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
@@ -788,9 +786,6 @@ struct pair_hash {
 template<class IdxTy, class NodeTy, class EdgeTy>
 class graph {
 public:
-    static size_t hash_function(const pair<IdxTy, IdxTy>& key){
-        return Name(key.first) + Name(key.second);
-    }
 
     unordered_map<pair<IdxTy, IdxTy>, EdgeTy, pair_hash> edges;
     unordered_map<IdxTy, NodeTy> nodes;
@@ -803,6 +798,14 @@ public:
             res.push_back(iter.first);
         }
         return res;
+    }
+
+    const IdxTy getNxNodeIdx(){
+        IdxTy mx = 0;
+        for(auto iter:nodes){
+            mx = max(mx, iter.first);
+        }
+        return mx + 1;
     }
 
     const NodeTy getNode(IdxTy idx){
@@ -884,7 +887,13 @@ public:
 
     string get_ty_sig(const SVFType* ty){
         dfs_type(ty);
-        return nodes[ty]["typ_sig"].get<string>();
+        assert(nodes[ty].contains("ty_sig"));
+        return nodes[ty]["ty_sig"].get<string>();
+    }
+
+    json get_ty_attr(const SVFType* ty){
+        dfs_type(ty);
+        return nodes[ty];
     }
 
     void dfs_type(const SVFType* ty){
@@ -921,7 +930,7 @@ public:
         }else if (ISTy(SVFOtherType)){
             //TODO
         }
-        nodes[ty]["node_attr"] = get_type_attr(ty);
+        nodes[ty] = get_type_attr(ty);
     }
     json get_type_attr(const SVFType* ty){
         json attr;
@@ -997,7 +1006,7 @@ public:
         }else{
             assert(0 && "unkown kind of type");
         }
-        visNode[ty] = attr["ty_sig"];
+        visNode[ty] = attr["ty_sig"].get<string>();
         return attr;
     }
 };
@@ -1033,6 +1042,34 @@ public:
     uint32_t get_bind_svfgNode_id(uint32_t hvfgNode){
         return get_bind_svfgNode(hvfgNode)->getId();
     }
+
+    string get_hvfgNode_type(uint32_t idx){
+        assert(hasNode(idx));
+        return getNode(idx)["type"].get<string>();
+    }
+
+    bool is_GN_hvfgNode(uint32_t idx){
+        return get_hvfgNode_type(idx) == "GN";
+    }
+
+    bool is_MN_hvfgNode(uint32_t idx){
+        return get_hvfgNode_type(idx) == "MN";
+    }
+
+    bool is_TVN_hvfgNode(uint32_t idx){
+        return get_hvfgNode_type(idx) == "TVN";
+    }
+
+    bool is_inst_hvfgNode(uint32_t idx){
+        if (!hasNode(idx)) return false;
+        string typ = getNode(idx)["type"].get<string>();
+        return (typ == "GN") || (typ == "MN") || (typ == "TVN");
+    }
+
+    bool is_CN_hvfgNode(uint32_t idx){
+        return get_hvfgNode_type(idx) == "CN";
+    }
+
 private:
     hvfNode2svfNode_ty hvfNode2svfNode;
     svfNode2hvfNode_ty svfNode2hvfNode;
@@ -1056,11 +1093,13 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
             node_attr["data"] = "glob";
             attr["inst_full"] = node->getValue()->toString();
             attr["name"] = node->getValue()->getName();
+            //type
+            attr["type_uid"] = Name(node->getValue()->getType());
+
+
             node_attr["attr"] = attr;
-            hvfg->addNode(node_attr["uid"], node_attr);
+            hvfg->addNode(node_attr["uid"].get<uint32_t>(), node_attr);
             hvfg->bind_svfNode(node, node_attr["uid"]);
-            //handle constant
-            //TODO::current we don't deal with global variable's constant value
 
         }else {
             if (ISA(MSSAPHISVFGNode)) {
@@ -1073,9 +1112,8 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
                 attr["name"] = "mphi";
 
                 node_attr["attr"] = attr;
-                //cout << node_attr.dump() << "\n";
 
-                hvfg->addNode(node_attr["uid"], node_attr);
+                hvfg->addNode(node_attr["uid"].get<uint32_t>(), node_attr);
 
                 hvfg->bind_svfNode(node, node_attr["uid"]);
             }
@@ -1091,8 +1129,11 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
                 //attr["type_uid"] = Name(res->getParam()->getType());
                 attr["inst_full"] = res->getParam()->getValue()->toString();
                 attr["name"] = res->getParam()->getValue()->getName();
+                //Type
+                attr["type_uid"] = Name(res->getParam()->getType());
+
                 node_attr["attr"] = attr;
-                hvfg->addNode(node_attr["uid"], node_attr);
+                hvfg->addNode(node_attr["uid"].get<uint32_t>(), node_attr);
 
                 //typeg->dfs_type(res->getParam()->getType());
                 //inst_or_param2hvfg[Name(res->getParam()->getValue())] = uid;
@@ -1113,8 +1154,11 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
                 attr["inst_full"] = var->getValue()->toString();
                 //attr["func_type_uid"] = Name(res->getCaller()->getType());
                 attr["name"] = var->getValueName();
+                //Type
+                attr["type_uid"] = Name(var->getType());
+
                 node_attr["attr"] = attr;
-                hvfg->addNode(node_attr["uid"], node_attr);
+                hvfg->addNode(node_attr["uid"].get<uint32_t>(), node_attr);
 
                 //inst_or_param2hvfg[Name(var->getValue())] = uid;
                 hvfg->bind_svfNode(node, node_attr["uid"]);
@@ -1128,8 +1172,11 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
                 attr["inst_full"] = var->getValue()->toString();
                 attr["name"] = var->getValueName();
                 attr["op_code"] = get_opcode(var);
+                //Type
+                attr["type_uid"] = Name(var->getType());
+
                 node_attr["attr"] = attr;
-                hvfg->addNode(node_attr["uid"], node_attr);
+                hvfg->addNode(node_attr["uid"].get<uint32_t>(), node_attr);
 
                 //inst_or_param2hvfg[Name(var->getValue())] = uid;
                 hvfg->bind_svfNode(node, node_attr["uid"]);
@@ -1149,7 +1196,7 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
                 node_attr["attr"] = attr;
 
                 //cout << node_attr.dump() << "\n";
-                hvfg->addNode(node_attr["uid"], node_attr);
+                hvfg->addNode(node_attr["uid"].get<uint32_t>(), node_attr);
 
                 hvfg->bind_svfNode(node, node_attr["uid"]);
             } else if (ISA(CmpVFGNode)) {
@@ -1160,11 +1207,10 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
                 node_attr["data"] = get_opcode(var);
                 attr["inst_full"] = var->getValue()->toString();
                 attr["op_code"] = get_opcode(var);
+                attr["type_uid"] = Name(var->getType());
                 node_attr["attr"] = attr;
 
-                //cout << node_attr.dump() << "\n";
-
-                hvfg->addNode(node_attr["uid"], node_attr);
+                hvfg->addNode(node_attr["uid"].get<uint32_t>(), node_attr);
 
                 hvfg->bind_svfNode(node, node_attr["uid"]);
             } else if (ISA(IntraPHIVFGNode)) {
@@ -1176,11 +1222,12 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
                     node_attr["data"] = "ret";
                     attr["inst_full"] = res->getFun()->getExitBB()->getTerminator()->toString();
                     attr["op_code"]  = "ret";
+                    //type
+                    attr["type_uid"] = Name(res->getFun()->getReturnType());
                     node_attr["attr"] = attr;
 
-                    // cout << node_attr.dump() << "\n";
 
-                    hvfg->addNode(node_attr["uid"], node_attr);
+                    hvfg->addNode(node_attr["uid"].get<uint32_t>(), node_attr);
 
                     hvfg->bind_svfNode(node, node_attr["uid"]);
                 }else {
@@ -1191,11 +1238,12 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
                     node_attr["data"] = get_opcode(var);
                     attr["inst_full"] = var->getValue()->toString();
                     attr["op_code"] = get_opcode(var);
+                    //type
+                    attr["type_uid"] = Name(var->getType());
                     node_attr["attr"] = attr;
 
-                    // cout << node_attr.dump() << "\n";
 
-                    hvfg->addNode(node_attr["uid"], node_attr);
+                    hvfg->addNode(node_attr["uid"].get<uint32_t>(), node_attr);
 
                     hvfg->bind_svfNode(node, node_attr["uid"]);
                 }
@@ -1223,12 +1271,13 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
                     node_attr["data"] = get_opcode(var);
                     attr["inst_full"] = var->getValue()->toString();
                     attr["op_code"] = get_opcode(var);
+                    //type
+                    attr["type_uid"] = Name(var->getType());
                     node_attr["attr"] = attr;
                 }
 
-                //cout << node_attr.dump() << "\n";
 
-                hvfg->addNode(node_attr["uid"], node_attr);
+                hvfg->addNode(node_attr["uid"].get<uint32_t>(), node_attr);
 
                 hvfg->bind_svfNode(node, node_attr["uid"]);
             } else if (ISA(UnaryOPVFGNode)) {
@@ -1240,8 +1289,10 @@ hvfg_ty* svfg2hvfnode(SVFG* svfg){
                 attr["inst_full"] = var->getValue()->toString();
                 attr["name"] = var->getValueName();
                 attr["op_code"] = get_opcode(var);
+                //type
+                attr["type_uid"] = Name(var->getType());
                 node_attr["attr"] = attr;
-                hvfg->addNode(node_attr["uid"], node_attr);
+                hvfg->addNode(node_attr["uid"].get<uint32_t>(), node_attr);
 
                 hvfg->bind_svfNode(node, node_attr["uid"]);
             }
@@ -1412,7 +1463,6 @@ public:
                 del_node(node_idx);
             }
         }
-//        printf("total edge %d\n", s);
     }
 };
 
@@ -1442,6 +1492,124 @@ void link_hvfg(SVFG* svfg, hvfg_ty* hvfg){
     }
 }
 
+
+json get_constant(const SVFVar* var){
+    json j;
+    j["is_constant"] = false;
+    if (var == nullptr || !var_has_val(var)) return j;
+    if (const SVFConstantInt* cint = SVFUtil::dyn_cast<SVFConstantInt>(var->getValue())){
+        j["is_constant"] = true;
+        j["type_uid"] = Name(cint->getType());
+        j["value"] = to_string(cint->getSExtValue());
+    }else if (const SVFConstantFP* cfp = SVFUtil::dyn_cast<SVFConstantFP>(var->getValue())){
+        j["is_constant"] = true;
+        j["type_uid"] = Name(cfp->getType());
+        j["value"] = to_string(cfp->getFPValue());
+    }
+    return j;
+}
+
+void gen_const_node_then_add(uint32_t src, json& j, uint32_t&uid, hvfg_ty* hvfg){
+    if (j["is_constant"].get<bool>()){
+        json node;
+        node["type"] = "CN";
+        node["uid"] = uid++;
+        node["data"] = j["value"].get<string>();
+        json node_attr;
+        node_attr["type_uid"] = j["type_uid"].get<uint64_t>();
+        node["attr"] = node_attr;
+        hvfg->addNode(node["uid"].get<uint32_t>(), node);
+        json edge;
+        edge["type"] = "const_use";
+        edge["ord"] = 0;
+        hvfg->addEdge(node["uid"].get<uint32_t>(), src, edge);
+    }
+}
+
+void add_const_node(uint32_t node_idx, hvfg_ty* hvfg, uint32_t& uid){
+    auto node = hvfg->get_bind_svfgNode(node_idx);
+    auto var = getLHSTopLevPtr(node);
+    if (ISA(FormalParmVFGNode)){
+        //TODO
+    }
+    else if (ISA(ActualRetVFGNode)){
+        json j = get_constant(res->getRev());
+        gen_const_node_then_add(node_idx, j, uid, hvfg);
+    }
+    else if (ISA(BinaryOPVFGNode)){
+        for(uint32_t i = 0; i < res->getOpVerNum(); i++){
+            json j = get_constant(var);
+            gen_const_node_then_add(node_idx, j, uid, hvfg);
+        }
+    }
+    else if (ISA(BranchVFGNode)){
+        //no need
+    }
+    else if (ISA(CmpVFGNode)){
+        for(uint32_t i = 0; i < res->getOpVerNum(); i++){
+            json j = get_constant(var);
+            gen_const_node_then_add(node_idx, j, uid, hvfg);
+        }
+    }
+    else if (ISA(IntraPHIVFGNode)){
+        //TODO
+    }
+    else if (ISA(StmtVFGNode)){
+        if (ISA(StoreVFGNode)) {
+            json j = get_constant(res->getPAGSrcNode());
+            gen_const_node_then_add(node_idx, j, uid, hvfg);
+        }
+    }
+    else if (ISA(UnaryOPVFGNode)){
+        for(uint32_t i = 0; i < res->getOpVerNum(); i++){
+            json j = get_constant(var);
+            gen_const_node_then_add(node_idx, j, uid, hvfg);
+        }
+    }
+}
+
+void add_constant_node2hvfg(hvfg_ty* hvfg){
+    uint32_t uid = hvfg->getNodeIdxList().size();
+    for(auto node_idx:hvfg->getNodeIdxList()){
+        if(hvfg->is_inst_hvfgNode(node_idx)){
+            //FIXME(Global Constant) current we don't dealwith global constant
+            if (hvfg->is_GN_hvfgNode(node_idx)) continue;
+            add_const_node(node_idx, hvfg, uid);
+        }
+    }
+}
+
+void add_type_node2hvfg(hvfg_ty* hvfg, typeg_ty* typeg){
+    uint32_t uid = hvfg->getNxNodeIdx();
+    for(auto node_idx:hvfg->getNodeIdxList()){
+        if (hvfg->is_inst_hvfgNode(node_idx) || hvfg->is_CN_hvfgNode(node_idx)){
+            assert(hvfg->getNode(node_idx).contains("attr"));
+            if (hvfg->getNode(node_idx)["attr"].contains("type_uid")){
+                SVFType* typ = (SVFType*)hvfg->getNode(node_idx)["attr"]["type_uid"].get<uint64_t>();
+                assert(typ != nullptr);
+                json node;
+                node["type"] = "TN";
+                node["uid"] = uid++;
+                node["data"] = typeg->get_ty_sig(typ);
+                json typ_attr = typeg->getNode(typ);
+                //TODO(getType need add struct type Name)
+                node["attr"] = typ_attr;
+                hvfg->addNode(node["uid"].get<uint32_t>(), node);
+                json edge;
+                edge["ord"] = 0;
+                edge["type"] = "type_use";
+                hvfg->addEdge(node["uid"].get<uint32_t>(), node_idx, edge);
+            }
+        }
+    }
+}
+
+void add_name_node2hvfg(hvfg_ty* hvfg){
+    uint32_t uid = hvfg->getNodeIdxList().size();
+    for(auto node_idx : hvfg->getNodeIdxList()){
+
+    }
+}
 int main(int argc, char** argv) {
     char** arg_value = new char*[argc];
     std::vector<std::string> moduleNameVec;
@@ -1468,37 +1636,19 @@ int main(int argc, char** argv) {
 
     hvfg_ty* hvfg = svfg2hvfnode(svfg);
     link_hvfg(svfg, hvfg);
-    //link_branch_phi_node(svfg, hvfg);
+    add_constant_node2hvfg(hvfg);
+    typeg_ty* typeg = new typeg_ty();
+    add_type_node2hvfg(hvfg, typeg);
+
+
     auto j = hvfg->dump();
     write_json_to_file(j, Options::valueflow_graph_path());
-//    for(auto it:(*svfg)){
-//        auto node = it.second;
-//        if (hvfg->svfNode2hvfNode.find(node) == hvfg->svfNode2hvfNode.end()){
-//            bool has = 0;
-//            if (node->getICFGNode()->getBB() == nullptr) continue;
-//            for(auto in_edge:node->getInEdges()){
-//                for(auto out_edge:node->getOutEdges()){
-//                    bool in_is_ind = in_edge->isCallIndirectVFGEdge() || in_edge->isIndirectVFGEdge() || in_edge->isRetIndirectVFGEdge();
-//                    bool out_is_ind = out_edge->isCallIndirectVFGEdge() || out_edge->isIndirectVFGEdge() || out_edge->isRetIndirectVFGEdge();
-//                    if (out_is_ind != in_is_ind){
-//                        has = 1;
-//                    }
-//                }
-//            }
-//            if (has){
-//                cout << node->getValue()->toString() << endl;
-//            }
-//        }
-//    }
-    //add_hvfg_edge(hvfg);
-    //auto j = hvfg->dump();
-    //write_json_to_file(j, Options::valueflow_graph_path());
     /*TODO
      * 0. link node (ok)
      * 1. handle globalNode(ok) globalNode is alloca something, it will use store to initialize
      * 2. add ret node (OK)
-     * 3. add constant: current we don't deal with array/struct/global constant value(for initialize and operand)
-     * 4. add type node
+     * 3. add constant: current we don't deal with array/struct/global constant value(for initialize and operand) （OK）
+     * 4. add type node (OK)
      * 5. add name node
      * 6. add label node
      * 7. dump bbg
@@ -1509,11 +1659,6 @@ int main(int argc, char** argv) {
      * outside BB, we should retain alloca global
      * inside BB, we should retain getelementptr, llvm memcpy(this enable init variable use global)
      */
-    //build_hvfg_graph(svfg);
-//    dump_bb_graph(svfModule, svfg, Options::bb_graph_path());
-//    dump_valueflow_graph(svfg, Options::valueflow_graph_path());
-//    dump_call_graph(svfg, Options::call_graph_path());
-//    dump_type_graph(svfg, Options::type_graph_path());
 
 
     AndersenWaveDiff::releaseAndersenWaveDiff();
