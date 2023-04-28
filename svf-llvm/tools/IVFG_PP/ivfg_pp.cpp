@@ -107,62 +107,6 @@ bb2VFGNodeId_type map_BB2VFGNode(SVFModule* svfModule, SVFG* svfg) {
 }
 
 
-void dump_bb_graph(SVFModule* svfModule, SVFG* svfg, string output_path){
-    auto bb2VfgNodeId = map_BB2VFGNode(svfModule, svfg);
-    json j;
-    auto node_list = vector<uint64_t>();
-    auto edge_list = vector<vector<uint64_t> >();
-    json j1 = json::array();
-    for (auto func : svfModule->getFunctionSet()) {
-        //auto node_labels = vector<string>();
-        for (auto bb : func->getBasicBlockList()) {
-            node_list.push_back(Name(bb));
-            assert(bb2VfgNodeId.find(bb) != bb2VfgNodeId.end());
-            j1.push_back({{"uid", Name(bb)}, {"bb_name", bb->getName()}, {"func_name", bb->getFunction()->getName()}, {"vfg_nodes", bb2VfgNodeId[bb]}});
-            for (auto nxt_bb : bb->getSuccessors()) {
-                vector<uint64_t> edge = {Name(bb), Name(nxt_bb)};
-                edge_list.push_back(edge);
-            }
-        }
-        node_dict_type dict;
-    }
-    j = {{"node_list", node_list},
-                          {"edge_list", edge_list},
-                          {"node_attr", j1}};
-    auto buf = json::to_bjdata(j);
-    std::ofstream outFile(output_path, std::ios::binary);
-    outFile.write(reinterpret_cast<char*>(buf.data()),
-                  sizeof(unsigned char) * buf.size());
-    outFile.close();
-}
-
-
-void dump_call_graph(SVFG* svfg, string output_path){
-    auto cg = svfg->getPTA()->getPTACallGraph();
-    json j;
-    j["node_list"] = json::array();
-    j["edge_list"] = json::array();
-    j["node_attr"] = json::array();
-    //TODO::maybe can record callsite
-    for(auto it : *cg){
-        auto node = it.second;
-        j["node_list"].push_back(Name(node));
-        for(auto edge:node->getOutEdges()){
-            auto dstNode = edge->getDstNode();
-            j["edge_list"].push_back({Name(node), Name(dstNode)});
-        }
-        auto ja = json::array();
-        for(auto bb:node->getFunction()->getBasicBlockList()){
-            ja.push_back(Name(bb));
-        }
-        j["node_attr"].push_back({{"uid", Name(node)}, {"bb_nodes", ja}, {"func_name", node->getFunction()->getName()}});
-    }
-    auto buf = json::to_bjdata(j);
-    std::ofstream outFile(output_path, std::ios::binary);
-    outFile.write(reinterpret_cast<char*>(buf.data()),
-                  sizeof(unsigned char) * buf.size());
-    outFile.close();
-}
 
 
 std::string get_type_string(const SVFType* ty)
@@ -950,6 +894,70 @@ void add_label_node2hvfg(hvfg_ty* hvfg){
     }
 }
 
+void dump_bb_graph(SVFModule* svfModule, SVFG* svfg, hvfg_ty* hvfg, string output_path){
+    auto bb2VfgNodeId = map_BB2VFGNode(svfModule, svfg);
+    json j;
+    auto node_list = vector<uint64_t>();
+    auto edge_list = vector<vector<uint64_t> >();
+    json j1 = json::array();
+    for (auto func : svfModule->getFunctionSet()) {
+        //auto node_labels = vector<string>();
+        for (auto bb : func->getBasicBlockList()) {
+            node_list.push_back(Name(bb));
+            assert(bb2VfgNodeId.find(bb) != bb2VfgNodeId.end());
+            vector<uint32_t> node_list;
+            for(auto svfNode:bb2VfgNodeId[bb]){
+                auto node = (SVFGNode*)(svfNode);
+                if (!hvfg->is_use_svfgnode(node)) continue;
+                node_list.push_back(hvfg->get_svfgnode2_hvfgNode(node));
+            }
+            j1.push_back({{"uid", Name(bb)}, {"bb_name", bb->getName()}, {"func_name", bb->getFunction()->getName()}, {"hvfg_nodes", node_list}});
+            for (auto nxt_bb : bb->getSuccessors()) {
+                vector<uint64_t> edge = {Name(bb), Name(nxt_bb)};
+                edge_list.push_back(edge);
+            }
+        }
+        node_dict_type dict;
+    }
+    j = {{"node_list", node_list},
+         {"edge_list", edge_list},
+         {"node_attr", j1}};
+    auto buf = json::to_bjdata(j);
+    std::ofstream outFile(output_path, std::ios::binary);
+    outFile.write(reinterpret_cast<char*>(buf.data()),
+                  sizeof(unsigned char) * buf.size());
+    outFile.close();
+}
+
+
+void dump_call_graph(SVFG* svfg, string output_path){
+    auto cg = svfg->getPTA()->getPTACallGraph();
+    json j;
+    j["node_list"] = json::array();
+    j["edge_list"] = json::array();
+    j["node_attr"] = json::array();
+    //TODO::maybe can record callsite
+    for(auto it : *cg){
+        auto node = it.second;
+        j["node_list"].push_back(Name(node));
+        for(auto edge:node->getOutEdges()){
+            auto dstNode = edge->getDstNode();
+            j["edge_list"].push_back({Name(node), Name(dstNode)});
+        }
+        auto ja = json::array();
+        for(auto bb:node->getFunction()->getBasicBlockList()){
+            ja.push_back(Name(bb));
+        }
+        j["node_attr"].push_back({{"uid", Name(node)}, {"bb_nodes", ja}, {"func_name", node->getFunction()->getName()}});
+    }
+    auto buf = json::to_bjdata(j);
+    std::ofstream outFile(output_path, std::ios::binary);
+    outFile.write(reinterpret_cast<char*>(buf.data()),
+                  sizeof(unsigned char) * buf.size());
+    outFile.close();
+}
+
+
 int main(int argc, char** argv) {
     char** arg_value = new char*[argc];
     std::vector<std::string> moduleNameVec;
@@ -982,7 +990,11 @@ int main(int argc, char** argv) {
     add_name_node2hvfg(hvfg);
     add_label_node2hvfg(hvfg);
     auto j = hvfg->dump();
-    write_json_to_file(j, Options::valueflow_graph_path());
+    write_json_to_file(j, Options::output_path() + "hvfg.bjd");
+    auto j_ty = typeg->dump();
+    write_json_to_file(j_ty, Options::output_path() + "typeg.bjd");
+    dump_bb_graph(svfModule, svfg, hvfg, Options::output_path() + "bbg.bjd");
+    dump_call_graph(svfg, Options::output_path() + "cg.bjd");
     /*TODO
      * 0. link node (ok) huge link is out of time, need fix it
      * 1. handle globalNode(ok) globalNode is alloca something, it will use store to initialize
@@ -991,9 +1003,9 @@ int main(int argc, char** argv) {
      * 4. add type node (OK)
      * 5. add name node (OK)
      * 6. add label node (OK)
-     * 7. dump bbg
-     * 8. dump typeg
-     * 9. dump cg
+     * 7. dump bbg (OK)
+     * 8. dump typeg (OK)
+     * 9. dump cg (OK)
      * 10. handle ord
      * 11. handle global constant
      * outside BB, we should retain alloca global
