@@ -859,12 +859,5 @@ const Option<bool> Options::demangleRust(
  const Option<bool> Options::flow2vec(
      "flow2vec", "gen flow2vec dataset just as flow2vec, include impl_var_name",
      false);
- const Option<std::string> Options::valueflow_graph_path("vfg-path",
-                                                         "valueflow_graph_path",
-                                                         "vfg.bjd");
- const Option<std::string> Options::bb_graph_path("bbg-path", "bb_graph_path",
-                                                  "bbg.bjd");
- const Option<std::string> Options::call_graph_path("cg-path",
-                                                    "call_graph_path",
-                                                    "cg.bjd");
+ const Option<std::string> Options::output_path("output_dir", "output_dir", "");
  }  // namespace SVF.

@@ -908,6 +908,7 @@ void dump_bb_graph(SVFModule* svfModule, SVFG* svfg, hvfg_ty* hvfg, string outpu
             vector<uint32_t> node_list;
             for(auto svfNode:bb2VfgNodeId[bb]){
                 auto node = (SVFGNode*)(svfNode);
+                //FIXME(Global)::when SVFStmtNode's value is call inst
                 if (!hvfg->is_use_svfgnode(node)) continue;
                 node_list.push_back(hvfg->get_svfgnode2_hvfgNode(node));
             }

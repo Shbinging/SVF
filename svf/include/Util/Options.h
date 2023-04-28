@@ -269,9 +269,7 @@ public:
     static const Option<bool> flow2vec;
 
     // ivfg_pp
-    static const Option<std::string> valueflow_graph_path;
-    static const Option<std::string> bb_graph_path;
-    static const Option<std::string> call_graph_path;
+    static const Option<std::string> output_path;
 };
 }  // namespace SVF
 
