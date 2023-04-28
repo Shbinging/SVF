@@ -959,6 +959,27 @@ void dump_call_graph(SVFG* svfg, string output_path){
 }
 
 
+/*TODO
+    *  -1. get hvfgNode from svfgNode (ok)
+     * 0. link node (ok)
+     *  huge link is out of time, need fix it
+     * 1. handle globalNode(ok)
+     *  globalNode is alloca something, it will use store to initialize
+     * 2. add ret node (OK)
+     * 3. add constant
+     *  current we don't deal with array/struct/global constant value(for initialize and operand) （OK）
+     * 4. add type node (OK)
+     * 5. add name node (OK)
+     * 6. add label node (OK)
+     * 7. dump bbg (OK)
+     * 8. dump typeg (OK)
+     * 9. dump cg (OK)
+     * 10. handle ord
+     * 11. handle global constant
+     * outside BB, we should retain alloca global
+     * inside BB, we should retain getelementptr, llvm memcpy(this enable init variable use global)
+ */
+
 int main(int argc, char** argv) {
     char** arg_value = new char*[argc];
     std::vector<std::string> moduleNameVec;
@@ -996,23 +1017,6 @@ int main(int argc, char** argv) {
     write_json_to_file(j_ty, Options::output_path() + "typeg.bjd");
     dump_bb_graph(svfModule, svfg, hvfg, Options::output_path() + "bbg.bjd");
     dump_call_graph(svfg, Options::output_path() + "cg.bjd");
-    /*TODO
-     * 0. link node (ok) huge link is out of time, need fix it
-     * 1. handle globalNode(ok) globalNode is alloca something, it will use store to initialize
-     * 2. add ret node (OK)
-     * 3. add constant: current we don't deal with array/struct/global constant value(for initialize and operand) （OK）
-     * 4. add type node (OK)
-     * 5. add name node (OK)
-     * 6. add label node (OK)
-     * 7. dump bbg (OK)
-     * 8. dump typeg (OK)
-     * 9. dump cg (OK)
-     * 10. handle ord
-     * 11. handle global constant
-     * outside BB, we should retain alloca global
-     * inside BB, we should retain getelementptr, llvm memcpy(this enable init variable use global)
-     */
-
 
     AndersenWaveDiff::releaseAndersenWaveDiff();
     SVFIR::releaseSVFIR();
